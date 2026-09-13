@@ -406,25 +406,28 @@ document.addEventListener("click", (e) => {
     }
 });
 
-// JS: Sincronización global y gratuita de mensajes
+// JS: Sincronización global y gratuita de mensajes corregida
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("globalVisitorForm");
     const wallContainer = document.getElementById("wallMessages");
     const submitBtn = document.getElementById("submitBtn");
     
-    // Pega aquí la URL que te genera npoint.io o jsonbin.io
-    const API_URL = "https://www.npoint.io/docs/b9b424b5a68d31429525"; 
+    // URL corregida sin el "/mensajes" al final
+    const API_URL = "https://api.npoint.io/b9b424b5a68d31429525"; 
 
     // 1. Cargar mensajes desde la nube para que todos los vean
     async function fetchGlobalMessages() {
         try {
             const response = await fetch(API_URL);
+            if (!response.ok) throw new Error("Error en la red");
             const data = await response.json();
-            // Asumiendo que la estructura es { mensajes: [...] }
-            const messages = data.mensajes || [];
+            
+            // Si el bin está vacío o es un array directo, manejamos ambas estructuras
+            const messages = Array.isArray(data) ? data : (data.mensajes || []);
             
             renderMessages(messages);
         } catch (e) {
+            console.error(e);
             wallContainer.innerHTML = `<p class="loading-text">No se pudieron cargar los mensajes en este momento.</p>`;
         }
     }
@@ -443,10 +446,10 @@ document.addEventListener("DOMContentLoaded", () => {
             card.className = "wall-msg-card";
             card.innerHTML = `
                 <div class="msg-meta">
-                    <span>👤 ${escapeHtml(item.name)} <small>(${escapeHtml(item.origin)})</small></span>
-                    <span>🕒 ${item.date}</span>
+                    <span>👤 ${escapeHtml(item.name || 'Anónimo')} <small>(${escapeHtml(item.origin || 'Desconocido')})</small></span>
+                    <span>🕒 ${escapeHtml(item.date || '')}</span>
                 </div>
-                <p>${escapeHtml(item.msg)}</p>
+                <p>${escapeHtml(item.msg || '')}</p>
             `;
             wallContainer.appendChild(card);
         });
@@ -473,14 +476,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Primero obtenemos los mensajes actuales de la nube
                 const getRes = await fetch(API_URL);
                 const currentData = await getRes.json();
-                const messages = currentData.mensajes || [];
+                const messages = Array.isArray(currentData) ? currentData : (currentData.mensajes || []);
 
                 // Agregamos el nuevo al inicio
                 messages.unshift(newMessage);
 
-                // Guardamos la lista actualizada de vuelta en la nube via PUT
+                // Guardamos la lista actualizada usando POST hacia la raíz del bin
                 const updateRes = await fetch(API_URL, {
-                    method: 'PUT',
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mensajes: messages })
                 });
@@ -488,8 +491,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (updateRes.ok) {
                     form.reset();
                     renderMessages(messages); // Actualiza la vista localmente de inmediato
+                } else {
+                    throw new Error("No se pudo guardar");
                 }
             } catch (e) {
+                console.error(e);
                 alert("Hubo un error al enviar tu mensaje. Inténtalo de nuevo.");
             } finally {
                 submitBtn.textContent = "Publicar en el Muro Global";
@@ -499,6 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function escapeHtml(text) {
+        if (!text) return '';
         const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
         return text.replace(/[&<>"']/g, function(m) { return map[m]; });
     }
