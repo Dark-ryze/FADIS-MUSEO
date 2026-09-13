@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salas Temáticas · Memoria Audiovisual del Valle de Teotihuacán</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=VT323&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="assets/css/inicio.css">
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+
+<body data-color-blind-mode="none" data-text-size="normal" data-mode="archivo">
+
+    <!-- HTML: Audio sutil para interacciones -->
+    <audio id="uiClickSound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- SVG filters for color-blind simulation -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <filter id="protanopia-filter">
+                <feColorMatrix type="matrix"
+                    values="0.567,0.433,0,0,0  0.558,0.442,0,0,0  0,0.242,0.758,0,0  0,0,0,1,0" />
+            </filter>
+            <filter id="deuteranopia-filter">
+                <feColorMatrix type="matrix" values="0.625,0.375,0,0,0  0.7,0.3,0,0,0  0,0.3,0.7,0,0  0,0,0,1,0" />
+            </filter>
+            <filter id="tritanopia-filter">
+                <feColorMatrix type="matrix"
+                    values="0.95,0.05,0,0,0  0,0.433,0.567,0,0  0,0.475,0.525,0,0  0,0,0,1,0" />
+            </filter>
+        </defs>
+    </svg>
+
+    <div class="museum-scope">
+
+        <!-- Identity Bar Superior con Reproductor de Audio -->
+        <div class="identity-bar">
+            <div class="identity-left">
+                <span class="emblem" aria-hidden="true">Ⓕ</span>
+                <strong>Fundación FADIS</strong>
+                <span class="sep">presenta</span>
+                <span>Archivo FOCINE</span>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:22px;">
+                <!-- NUEVO: Reproductor de Audio Ambiental 
+                <button id="audioAmbientBtn" class="audio-ambient-btn" aria-pressed="false"
+                    title="Audio guía ambiental histórica">
+                    🔊 <span id="audioLabel">Audio guía</span>
+                </button>
+                <audio id="ambientAudio" loop preload="auto">
+                    <source
+                        src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU3LjgzLjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA="
+                        type="audio/mpeg">
+                </audio>
+-->
+                <button class="mode-switch" id="modeSwitch" aria-pressed="false"
+                    aria-label="Cambiar entre modo archivo histórico y modo actual">
+                    <span id="modeLabel">Modo archivo</span>
+                    <span class="track"><span class="thumb"></span></span>
+                </button>
+                <span class="identity-right"><span class="dot" aria-hidden="true"></span> EN LÍNEA</span>
+            </div>
+        </div>
+
+        <main role="main">
+
+            <section class="salas-container-wrapper">
+                <a href="index.html" class="nav-back">&larr; Volver al Vestíbulo Principal</a>
+
+                <div class="salas-header-flex">
+                    <div>
+                        <span class="kicker">EXP. ACERVO VIRTUAL</span>
+                        <h1>Salas Temáticas del Museo</h1>
+                        <p class="salas-intro">
+                            Seleccione una de las salas para explorar las colecciones históricas, fotográficas y
+                            audiovisuales resguardadas en este acervo digital del Valle de Teotihuacán. <br>
+                            <small style="opacity:0.7;">💡 Atajos: presiona <kbd>/</kbd> para buscar o <kbd>Esc</kbd>
+                                para limpiar.</small>
+                        </p>
+                    </div>
+
+                    <!-- Buscador Interactivo -->
+                    <div class="salas-search-wrapper">
+                        <label for="searchSalas" class="sr-only">Buscar salas temáticas</label>
+                        <div class="search-input-container">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" aria-hidden="true">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="searchSalas" placeholder="Buscar sala por nombre o tema... (/)"
+                                autocomplete="off">
+                            <button id="clearSearch" class="clear-search-btn" style="display: none;"
+                                aria-label="Limpiar búsqueda">&times;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NUEVO: Línea de Tiempo Cronológica -->
+                <div id="timelineFilters" class="timeline-filters">
+                    <span class="filter-label">Época:</span>
+                    <button class="timeline-btn active" data-epoca="all">Todas</button>
+                    <button class="timeline-btn" data-epoca="prehispanico">Prehispánico</button>
+                    <button class="timeline-btn" data-epoca="virreinato">Virreinato</button>
+                    <button class="timeline-btn" data-epoca="sigloxix">Siglo XIX</button>
+                    <button class="timeline-btn" data-epoca="contemporaneo">Contemporáneo</button>
+                </div>
+
+                <!-- Barra de Controles (Categorías, Favoritos, Exportar y Vistas) -->
+                <div class="salas-controls-bar">
+                    <div id="categoryFilters" class="category-filters">
+                        <button class="filter-btn active" data-filter="all">Todas las categorías</button>
+                    </div>
+
+                    <div class="view-and-fav-controls">
+                        <button id="favsToggleBtn" class="control-toggle-btn" aria-pressed="false">
+                            ⭐ Mis Guardadas (<span id="favCount">0</span>)
+                        </button>
+                        <!--
+                        <button id="exportFavsBtn" class="control-toggle-btn"
+                            title="Descargar lista de favoritas en TXT">
+                            📥 Exportar
+                        </button>
+                        -->
+
+                        <div class="view-switcher" role="group" aria-label="Cambiar vista">
+                            <button id="gridViewBtn" class="view-btn active" title="Vista de cuadrícula"
+                                aria-label="Cuadrícula">⊞</button>
+                            <button id="listViewBtn" class="view-btn" title="Vista de lista"
+                                aria-label="Lista">☰</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contador métrico dinámico -->
+                <div id="salasMetrics" class="salas-metrics-counter"></div>
+
+                <!-- Contenedor dinámico de salas -->
+                <div id="salas-container" class="salas-grid"></div>
+
+                <!-- Mensaje cuando no hay resultados -->
+                <div id="noResults" class="no-results-message" style="display: none;">
+                    <p>No se encontraron salas temáticas que coincidan con los criterios seleccionados.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer class="credits">
+            Un proyecto de Fundación FADIS &middot; Archivo FOCINE &middot; Valle de Teotihuacán
+        </footer>
+    </div>
+
+    <!-- NUEVO: Modal de Vista Previa (Lightbox) -->
+    <div id="previewModal" class="custom-modal" role="dialog" aria-hidden="true">
+        <div class="modal-box">
+            <button id="closeModal" class="modal-close-btn" aria-label="Cerrar modal">&times;</button>
+            <span id="modalBadge" class="badge-sala"></span>
+            <h2 id="modalTitle"></h2>
+            <p id="modalDesc"></p>
+            <div class="modal-actions">
+                <a id="modalVisitBtn" href="#" class="btn-sala">Entrar a la Sala Virtual</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón flotante de accesibilidad / inclusión -->
+    <button class="a11y-launcher" id="a11yLauncher" aria-haspopup="true" aria-expanded="false" aria-controls="a11yPanel"
+        aria-label="Abrir herramientas de accesibilidad">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="12" cy="5" r="2.1" fill="#D4A017" />
+            <path
+                d="M12 8.2c-3.2 0-5.8.9-5.8 2v1.1c0 .5.4.9.9.9h2.2l.6 8.3c.05.6.55 1 1.1 1s1.05-.4 1.1-1l.4-5.6h.6l.4 5.6c.05.6.55 1 1.1 1s1.05-.4 1.1-1l.6-8.3h2.2c.5 0 .9-.4.9-.9V10.2c0-1.1-2.6-2-5.8-2Z"
+                fill="#E7DCC7" />
+        </svg>
+    </button>
+
+    <!-- Panel de accesibilidad estilo tarjetas -->
+    <div class="a11y-panel" id="a11yPanel" role="dialog" aria-modal="true" aria-label="Menú de accesibilidad">
+
+        <div class="a11y-header">
+            <h2>Menú de accesibilidad</h2>
+            <button class="a11y-close" id="a11yClose" aria-label="Cerrar menú de accesibilidad">&times;</button>
+        </div>
+
+        <div class="a11y-body">
+
+            <!-- Estado del perfil activo -->
+            <div class="a11y-status" id="a11yStatus">
+                <span class="a11y-status-dot" aria-hidden="true"></span>
+                <span id="a11yStatusText">Ningún perfil activado</span>
+            </div>
+
+            <!-- Perfiles rápidos -->
+            <div class="a11y-section-label">Perfiles rápidos</div>
+            <div class="a11y-profiles" role="group" aria-label="Perfiles rápidos de accesibilidad">
+                <button type="button" class="profile-chip" id="profileMotora" data-profile="motora">
+                    <span class="profile-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="4.5" r="2" fill="currentColor" />
+                            <path
+                                d="M12 8c-2.6 0-5 .7-5 1.7v1c0 .4.3.7.7.7h1.9l.5 7.3c0 .5.5.9 1 .9s.9-.4.9-.9l.3-5h.4l.3 5c0 .5.5.9 1 .9s.9-.4.9-.9l.5-7.3H16c.4 0 .7-.3.7-.7v-1C16.7 8.7 14.6 8 12 8Z"
+                                fill="currentColor" />
+                        </svg>
+                    </span>
+                    <span class="profile-label">Discapacidad motora</span>
+                    <span class="profile-check" aria-hidden="true">&check;</span>
+                </button>
+
+                <button type="button" class="profile-chip" id="profileCeguera" data-profile="ceguera">
+                    <span class="profile-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M3 12c1.8-3.6 5.2-6 9-6s7.2 2.4 9 6c-1.8 3.6-5.2 6-9 6s-7.2-2.4-9-6Z"
+                                stroke="currentColor" stroke-width="1.6" />
+                            <circle cx="12" cy="12" r="2.4" fill="currentColor" />
+                        </svg>
+                    </span>
+                    <span class="profile-label">Ceguera</span>
+                    <span class="profile-check" aria-hidden="true">&check;</span>
+                </button>
+
+                <button type="button" class="profile-chip" id="profileDaltonismo" data-profile="daltonismo">
+                    <span class="profile-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M12 3c3 4 6 7.2 6 10.5A6 6 0 0 1 6 13.5C6 10.2 9 7 12 3Z" stroke="currentColor"
+                                stroke-width="1.6" />
+                        </svg>
+                    </span>
+                    <span class="profile-label">Daltonismo</span>
+                    <span class="profile-check" aria-hidden="true">&check;</span>
+                </button>
+
+                <button type="button" class="profile-chip" id="profileDislexia" data-profile="dislexia">
+                    <span class="profile-icon" aria-hidden="true">Df</span>
+                    <span class="profile-label">Dislexia</span>
+                    <span class="profile-check" aria-hidden="true">&check;</span>
+                </button>
+            </div>
+
+            <hr class="a11y-divider">
+
+            <div class="a11y-section-label">Ajustes individuales</div>
+
+            <!-- Grid de tarjetas de funciones -->
+            <div class="a11y-grid">
+
+                <!-- Lector de pantalla -->
+                <button type="button" class="a11y-card" id="cardAudio" data-toggle="audio" aria-pressed="false">
+                    <span class="card-badge" aria-hidden="true">i</span>
+                    <span class="card-check" aria-hidden="true">&check;</span>
+                    <span class="card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M4 10v4h3l4 4V6l-4 4H4Z" fill="currentColor" />
+                            <path d="M15.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="1.6"
+                                stroke-linecap="round" />
+                            <path d="M18 6.5a8.5 8.5 0 0 1 0 11" stroke="currentColor" stroke-width="1.6"
+                                stroke-linecap="round" opacity=".6" />
+                        </svg>
+                    </span>
+                    <span class="card-label">Lector de pantalla</span>
+                </button>
+
+                <!-- Contraste alto -->
+                <button type="button" class="a11y-card" id="cardContrasteAlto" data-contrast-option="alto"
+                    aria-pressed="false">
+                    <span class="card-check" aria-hidden="true">&check;</span>
+                    <span class="card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+                            <path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" />
+                        </svg>
+                    </span>
+                    <span class="card-label">Contraste +</span>
+                </button>
+
+                <!-- Modo oscuro / invertido -->
+                <button type="button" class="a11y-card" id="cardContrasteOscuro" data-contrast-option="oscuro"
+                    aria-pressed="false">
+                    <span class="card-check" aria-hidden="true">&check;</span>
+                    <span class="card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" fill="currentColor" />
+                        </svg>
+                    </span>
+                    <span class="card-label">Modo oscuro</span>
+                </button>
+
+                <!-- Saturación -->
+                <button type="button" class="a11y-card" id="cardSaturacion" data-toggle="saturacion"
+                    aria-pressed="false">
+                    <span class="card-check" aria-hidden="true">&check;</span>
+                    <span class="card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M12 3c2.8 3.8 5.5 6.9 5.5 10a5.5 5.5 0 1 1-11 0C6.5 9.9 9.2 6.8 12 3Z"
+                                stroke="currentColor" stroke-width="1.6" />
+                        </svg>
+                    </span>
+                    <span class="card-label">Saturación</span>
+                </button>
+
+                <!-- Tipografía (expandible) -->
+                <button type="button" class="a11y-card" id="cardTipografia" data-expand="tipografia"
+                    aria-expanded="false">
+                    <span class="card-check" aria-hidden="true">&check;</span>
+                    <span class="card-icon" aria-hidden="true">T T</span>
+                    <span class="card-label">Tipografía</span>
+                </button>
+
+                <!-- Texto más grande -->
+                <button type="button" class="a11y-card" id="cardZoom" data-toggle="zoom" aria-pressed="false">
+                    <span class="card-check" aria-hidden="true">&check;</span>
+                    <span class="card-icon" aria-hidden="true">A+</span>
+                    <span class="card-label">Texto más grande</span>
+                </button>
+
+                <!-- Espaciado de texto -->
+                <button type="button" class="a11y-card" id="cardEspaciado" data-toggle="espaciado" aria-pressed="false">
+                    <span class="card-check" aria-hidden="true">&check;</span>
+                    <span class="card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M4 12h16M4 12l3-3M4 12l3 3M20 12l-3-3M20 12l-3 3" stroke="currentColor"
+                                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    <span class="card-label">Espaciado de texto</span>
+                </button>
+
+                <!-- Cursor (expandible) -->
+                <button type="button" class="a11y-card" id="cardCursor" data-expand="cursor" aria-expanded="false">
+                    <span class="card-check" aria-hidden="true">&check;</span>
+                    <span class="card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5 3l14 8.5-6.2.9L16 19l-2.6 1.1-3.2-6.6L5 17V3Z" />
+                        </svg>
+                    </span>
+                    <span class="card-label">Cursor</span>
+                </button>
+
+                <!-- Resaltado de texto -->
+                <button type="button" class="a11y-card" id="cardResaltado" data-toggle="resaltado" aria-pressed="false">
+                    <span class="card-check" aria-hidden="true">&check;</span>
+                    <span class="card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <rect x="4" y="14" width="16" height="6" rx="1" fill="currentColor" opacity=".35" />
+                            <path d="M8 14l6-9 3 2-6 9-4 1 1-3Z" fill="currentColor" />
+                        </svg>
+                    </span>
+                    <span class="card-label">Resaltado de texto</span>
+                </button>
+
+            </div>
+
+            <!-- Submenú: Daltonismo -->
+            <div class="a11y-subpanel" id="subpanelDaltonismo" data-subpanel="daltonismo" hidden>
+                <span class="a11y-subpanel-label">Tipo de daltonismo</span>
+                <div class="a11y-chip-row" role="group" aria-label="Tipo de ajuste de color">
+                    <button type="button" class="a11y-chip" data-color-blind="none">Estándar</button>
+                    <button type="button" class="a11y-chip" data-color-blind="protanopia">Protanopia</button>
+                    <button type="button" class="a11y-chip" data-color-blind="deuteranopia">Deuteranopia</button>
+                    <button type="button" class="a11y-chip" data-color-blind="tritanopia">Tritanopia</button>
+                    <button type="button" class="a11y-chip" data-color-blind="achromatopsia">Monocromía</button>
+                </div>
+            </div>
+
+            <!-- Submenú: Tipografía -->
+            <div class="a11y-subpanel" id="subpanelTipografia" data-subpanel="tipografia" hidden>
+                <span class="a11y-subpanel-label">Familia tipográfica</span>
+                <div class="a11y-chip-row" role="group" aria-label="Familia tipográfica">
+                    <button type="button" class="a11y-chip" data-font="default">Estándar</button>
+                    <button type="button" class="a11y-chip" data-font="opendyslexic">OpenDyslexic</button>
+                    <button type="button" class="a11y-chip" data-font="sans">Sans-serif</button>
+                    <button type="button" class="a11y-chip" data-font="serif">Serif clásica</button>
+                </div>
+            </div>
+
+            <!-- Submenú: Cursor -->
+            <div class="a11y-subpanel" id="subpanelCursor" data-subpanel="cursor" hidden>
+                <span class="a11y-subpanel-label">Tamaño de la flecha</span>
+                <div class="a11y-chip-row" role="group" aria-label="Tamaño del cursor">
+                    <button type="button" class="a11y-chip" data-cursor="normal">Normal</button>
+                    <button type="button" class="a11y-chip" data-cursor="grande">Grande</button>
+                    <button type="button" class="a11y-chip" data-cursor="extragrande">Extragrande</button>
+                </div>
+            </div>
+
+            <button type="button" class="a11y-reset" id="a11yReset">Restablecer todos los ajustes</button>
+
+        </div>
+    </div>
+
+    <!-- Scripts funcionales y de datos -->
+    <script src="assets/js/data.js"></script>
+    <script src="assets/js/salas.js"></script>
+    <script src="assets/js/app.js"></script>
+
+</body>
+
+</html>
