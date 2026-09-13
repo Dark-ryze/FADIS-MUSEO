@@ -413,7 +413,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const submitBtn = document.getElementById("submitBtn");
     
     // Pega aquí la URL que te genera npoint.io o jsonbin.io
-    const API_URL = "https://www.npoint.io/docs/901716da78ab0bf77a4f"; 
+    const API_URL = "https://www.npoint.io/docs/b9b424b5a68d31429525"; 
 
     // 1. Cargar mensajes desde la nube para que todos los vean
     async function fetchGlobalMessages() {
