@@ -155,22 +155,25 @@
             </section>
         </main>
 
-        <!-- HTML: Libro de Visitas -->
+        <!-- HTML: Libro de Visitas Global en la Nube -->
         <section class="libro-visitas-section">
-            <h3>Muro de Recuerdos y Visitantes</h3>
-            <p>Deja tu huella en la memoria audiovisual de nuestro valle.</p>
-            <form id="visitForm" class="visit-form">
+            <div class="libro-header">
+                <h3>📖 Libro de Visitas Global</h3>
+                <p>Deja tu mensaje para que otros visitantes del museo puedan leerlo.</p>
+            </div>
+
+            <form id="globalVisitorForm" class="visit-form">
                 <input type="text" id="visitorName" placeholder="Tu nombre o apodo..." required autocomplete="off">
-                <input type="text" id="visitorOrigin" placeholder="¿De nos visitas? (Ej. San Juan, CDMX...)" required
-                    autocomplete="off">
-                <textarea id="visitorMsg" placeholder="Escribe tu impresión sobre el museo..." rows="2"
-                    required></textarea>
-                <button type="submit" class="btn-firmar">Firmar el Muro</button>
+                <input type="text" id="visitorOrigin" placeholder="¿De dónde nos visitas?" required autocomplete="off">
+                <textarea id="visitorMsg" placeholder="Escribe tu mensaje..." rows="3" required></textarea>
+                <button type="submit" id="submitBtn" class="btn-firmar">Publicar en el Muro Global</button>
             </form>
+
             <div id="wallMessages" class="wall-messages">
-                <!-- Los mensajes locales se cargarán aquí -->
+                <p class="loading-text">Conectando con el muro global...</p>
             </div>
         </section>
+
 
         <footer class="credits">
             Un proyecto de Fundación FADIS &middot; Archivo FOCINE &middot; Valle de Teotihuacán

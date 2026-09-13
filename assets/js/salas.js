@@ -406,34 +406,103 @@ document.addEventListener("click", (e) => {
     }
 });
 
-// JS: Manejo local del libro de visitas real
-const visitForm = document.getElementById("visitForm");
-const wallMessages = document.getElementById("wallMessages");
+// JS: Sincronización global y gratuita de mensajes
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("globalVisitorForm");
+    const wallContainer = document.getElementById("wallMessages");
+    const submitBtn = document.getElementById("submitBtn");
+    
+    // Pega aquí la URL que te genera npoint.io o jsonbin.io
+    const API_URL = "https://www.npoint.io/docs/901716da78ab0bf77a4f"; 
 
-function loadMessages() {
-    const saved = JSON.parse(localStorage.getItem("teotihuacan_visitas") || "[]");
-    wallMessages.innerHTML = "";
-    saved.forEach(item => {
-        const div = document.createElement("div");
-        div.className = "wall-msg-card";
-        div.innerHTML = `<strong>${item.name}</strong> (${item.origin}): <p>${item.msg}</p>`;
-        wallMessages.appendChild(div);
-    });
-}
+    // 1. Cargar mensajes desde la nube para que todos los vean
+    async function fetchGlobalMessages() {
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            // Asumiendo que la estructura es { mensajes: [...] }
+            const messages = data.mensajes || [];
+            
+            renderMessages(messages);
+        } catch (e) {
+            wallContainer.innerHTML = `<p class="loading-text">No se pudieron cargar los mensajes en este momento.</p>`;
+        }
+    }
 
-if (visitForm) {
-    visitForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const name = document.getElementById("visitorName").value;
-        const origin = document.getElementById("visitorOrigin").value;
-        const msg = document.getElementById("visitorMsg").value;
+    // 2. Dibujar los mensajes en pantalla
+    function renderMessages(messages) {
+        wallContainer.innerHTML = "";
+        
+        if (messages.length === 0) {
+            wallContainer.innerHTML = `<p class="loading-text">Sé el primero en dejar tu huella en el muro global.</p>`;
+            return;
+        }
 
-        const saved = JSON.parse(localStorage.getItem("teotihuacan_visitas") || "[]");
-        saved.unshift({ name, origin, msg });
-        localStorage.setItem("teotihuacan_visitas", JSON.stringify(saved));
+        messages.forEach(item => {
+            const card = document.createElement("div");
+            card.className = "wall-msg-card";
+            card.innerHTML = `
+                <div class="msg-meta">
+                    <span>👤 ${escapeHtml(item.name)} <small>(${escapeHtml(item.origin)})</small></span>
+                    <span>🕒 ${item.date}</span>
+                </div>
+                <p>${escapeHtml(item.msg)}</p>
+            `;
+            wallContainer.appendChild(card);
+        });
+    }
 
-        visitForm.reset();
-        loadMessages();
-    });
-    loadMessages();
-}
+    // 3. Enviar un nuevo mensaje y actualizar la nube
+    if (form) {
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            submitBtn.textContent = "Publicando...";
+            submitBtn.disabled = true;
+
+            const name = document.getElementById("visitorName").value.trim();
+            const origin = document.getElementById("visitorOrigin").value.trim();
+            const msg = document.getElementById("visitorMsg").value.trim();
+
+            const now = new Date().toLocaleDateString("es-MX", { 
+                day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+            });
+
+            const newMessage = { name, origin, msg, date: now };
+
+            try {
+                // Primero obtenemos los mensajes actuales de la nube
+                const getRes = await fetch(API_URL);
+                const currentData = await getRes.json();
+                const messages = currentData.mensajes || [];
+
+                // Agregamos el nuevo al inicio
+                messages.unshift(newMessage);
+
+                // Guardamos la lista actualizada de vuelta en la nube via PUT
+                const updateRes = await fetch(API_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mensajes: messages })
+                });
+
+                if (updateRes.ok) {
+                    form.reset();
+                    renderMessages(messages); // Actualiza la vista localmente de inmediato
+                }
+            } catch (e) {
+                alert("Hubo un error al enviar tu mensaje. Inténtalo de nuevo.");
+            } finally {
+                submitBtn.textContent = "Publicar en el Muro Global";
+                submitBtn.disabled = false;
+            }
+        });
+    }
+
+    function escapeHtml(text) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    // Cargar al iniciar la página
+    fetchGlobalMessages();
+});

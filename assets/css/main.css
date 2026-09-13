@@ -194,46 +194,106 @@ body[data-color-blind-mode="achromatopsia"] .sep,body[data-color-blind-mode="ach
  .sala-card{--tilt:0deg;--stagger:0px}
 }
 
-/* CSS: Estilos Libro de Visitas */
+/* CSS: Estilos Libro de Visitas Propio */
 .libro-visitas-section {
-    background: #1f2833;
+    background: linear-gradient(145deg, #1f2833, #0b0c10);
     border: 1px solid rgba(212, 160, 23, 0.3);
     border-radius: 12px;
-    padding: 25px;
-    margin: 40px 0;
+    padding: 30px;
+    margin: 40px auto;
+    max-width: 800px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
 }
+
+.libro-header {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.libro-header h3 {
+    color: #e7dcc7;
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+}
+
+.libro-header p {
+    color: #c5c6c7;
+    font-size: 0.95rem;
+}
+
 .visit-form {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-top: 15px;
+    margin-bottom: 25px;
 }
+
 .visit-form input, .visit-form textarea {
     background: #0b0c10;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    padding: 10px;
+    padding: 12px;
     color: #fff;
     border-radius: 6px;
+    font-family: inherit;
 }
+
+.visit-form input:focus, .visit-form textarea:focus {
+    border-color: #d4a017;
+    outline: none;
+}
+
 .btn-firmar {
     background: #d4a017;
     color: #0b0c10;
     border: none;
-    padding: 10px;
+    padding: 12px;
     font-weight: bold;
     border-radius: 6px;
     cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
 }
+
+.btn-firmar:hover {
+    background: #e6b833;
+    transform: translateY(-2px);
+}
+
 .wall-messages {
-    margin-top: 20px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
 }
+
 .wall-msg-card {
-    background: rgba(11, 12, 16, 0.6);
-    padding: 10px 15px;
-    border-left: 3px solid #d4a017;
-    border-radius: 4px;
-    font-size: 0.9rem;
+    background: rgba(11, 12, 16, 0.7);
+    border: 1px solid rgba(212, 160, 23, 0.2);
+    padding: 15px;
+    border-left: 4px solid #d4a017;
+    border-radius: 6px;
+}
+
+.wall-msg-card .msg-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #d4a017;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.wall-msg-card p {
+    color: #c5c6c7;
+    font-size: 0.95rem;
+    margin: 0;
+    word-break: break-word;
+}
+
+.loading-text {
+    text-align: center;
+    color: #888;
+    font-style: italic;
 }
