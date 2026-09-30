@@ -52,7 +52,7 @@ const museoData = {
                     nombre: "Alejandro Suárez Camargo ",
                     vida: "1890 – 1965",
                     rol: "A qué se dedicó (ej. fotógrafo, cronista, danzante)",
-                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-998.jpg",
+                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-998.JPG",
                     semblanza: "Destacado antropólogo social egresado de la Universidad Autónoma Metropolitana, unidad Iztapalapa, ha tejido una trayectoria profunda y transformadora consagrada al entendimiento y la defensa de las comunidades a lo largo y ancho del país. Como fundador de Xilu Xahui, ha demostrado que el rigor académico de la disciplina antropológica no pertenece únicamente a los cubículos universitarios, sino que cobra verdadero sentido cuando se traduce en acción viva, escucha activa y proyectos sociales de alto impacto en distintas regiones de México. Su labor con esta fundación refleja un compromiso ético inquebrantable, articulando saberes comunitarios y herramientas metodológicas para impulsar procesos de desarrollo y revalorización cultural desde el respeto absoluto a la autonomía de los pueblos. Lejos de asumir posturas mesiánicas, Alejandro se distingue por caminar a ras de suelo, dialogar de igual a igual y construir puentes sólidos entre la investigación y la transformación social cotidiana. Para las nuevas generaciones de profesionales y estudiantes, su figura representa un faro indispensable: un recordadero viviente de que la antropología social es, antes que nada, un acto de empatía crítica, un ejercicio de congruencia y una vocación incansable por construir un país más justo y consciente de su pluriculturalidad."
                 },
                 {
@@ -68,7 +68,7 @@ const museoData = {
                     punto: "cuadro4",
                     titulo: "Barda de Adobe",
                     anio: "1935",
-                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0003.JPG",
+                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0003.jpg",
                     descripcion: "Un señor y una señora, que se encuentran caminando, frente a una barda de adobe, la fotografia fue tomada por un vecino del lugar."
                 },
                 {
