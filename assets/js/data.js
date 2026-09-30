@@ -35,7 +35,7 @@ const museoData = {
                     punto: "cuadro1",
                     titulo: "Señor y señora Arroyo ",
                     anio: "1920",
-                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0001.JPG",
+                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0001.jpg",
                     descripcion: "Pareja, una señora y un señor, captados en uno de los muros de su casa"
                 },
                 {
@@ -43,7 +43,7 @@ const museoData = {
                     punto: "cuadro2",
                     titulo: "Gabino Olivares, Cacique",
                     anio: "1912",
-                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0002.JPG",
+                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0002.jpg",
                     descripcion: "4 mujeres, una niña entre las piernas del señor con sombrero charro que se encuentra  sentado y otro parado detrás de el igual con sombrero."
                 },
                 {
@@ -52,7 +52,7 @@ const museoData = {
                     nombre: "Alejandro Suárez Camargo ",
                     vida: "1890 – 1965",
                     rol: "A qué se dedicó (ej. fotógrafo, cronista, danzante)",
-                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-998.JPG",
+                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-998.jpg",
                     semblanza: "Destacado antropólogo social egresado de la Universidad Autónoma Metropolitana, unidad Iztapalapa, ha tejido una trayectoria profunda y transformadora consagrada al entendimiento y la defensa de las comunidades a lo largo y ancho del país. Como fundador de Xilu Xahui, ha demostrado que el rigor académico de la disciplina antropológica no pertenece únicamente a los cubículos universitarios, sino que cobra verdadero sentido cuando se traduce en acción viva, escucha activa y proyectos sociales de alto impacto en distintas regiones de México. Su labor con esta fundación refleja un compromiso ético inquebrantable, articulando saberes comunitarios y herramientas metodológicas para impulsar procesos de desarrollo y revalorización cultural desde el respeto absoluto a la autonomía de los pueblos. Lejos de asumir posturas mesiánicas, Alejandro se distingue por caminar a ras de suelo, dialogar de igual a igual y construir puentes sólidos entre la investigación y la transformación social cotidiana. Para las nuevas generaciones de profesionales y estudiantes, su figura representa un faro indispensable: un recordadero viviente de que la antropología social es, antes que nada, un acto de empatía crítica, un ejercicio de congruencia y una vocación incansable por construir un país más justo y consciente de su pluriculturalidad."
                 },
                 {
@@ -60,7 +60,7 @@ const museoData = {
                     punto: "cuadro3",
                     titulo: "Vestimenta rural de la epoca",
                     anio: "1925",
-                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0004.JPG",
+                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0004.jpg",
                     descripcion: "Una pareja de esposos posa frente a su casa de adobe. El señor viste ropa de trabajo y su esposa lleva falda larga, rebozo al pecho y dos trenzas, características de la época. Ambos sostienen sus sombreros en las manos."
                 },
                 {
@@ -76,7 +76,7 @@ const museoData = {
                     punto: "cuadro5",
                     titulo: "Serenata",
                     anio: "1933",
-                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0007.JPG",
+                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0007.jpg",
                     descripcion: "Se observa un cuarteto de músicos con sus característicos sombreros, posando junto a un hombre que trabaja en el lugar. El hombre del mandil parece haber cantado para la dama que buscaba conquistar."
                 },
                 {
@@ -84,7 +84,7 @@ const museoData = {
                     punto: "cuadro6",
                     titulo: "Elemental Felipe Villanueva",
                     anio: "1931",
-                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0006.JPG",
+                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0006.jpg",
                     descripcion: "Los habitantes del pueblo de Tecámac se reúnen para asistir a la inauguración de la escuela, en cuyo edificio ondea la Bandera Nacional."
                 },
                 {
@@ -92,7 +92,7 @@ const museoData = {
                     punto: "cuadro7",
                     titulo: "La Iglesia y el jagüey",
                     anio: "1930",
-                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0005.JPG",
+                    url: "assets/images/Imagenes/Alejandro/FADIS-FOT-0005.jpg",
                     descripcion: "Se puede apreciar el jagüey en todo su esplendor, con la iglesia del municipio de Tecámac al fondo."
                 },
                 {
@@ -100,7 +100,7 @@ const museoData = {
                     punto: "video1",
                     titulo: "Una Carta Abierta a las Futuras Generaciones.",
                     anio: "2026",
-                    url: "assets/video/Alejandro/FADIS-FILMS-002.MP4",
+                    url: "assets/video/Alejandro/FADIS-FILMS-002.mp4",
                     descripcion: "Un testimonio vivo y entrañable de nuestra historia, creado para que quienes vengan mañana sepan de dónde venimos, cuánto amamos nuestra tierra y cómo late el corazón de nuestra cultura en cada rincón de este valle sagrado."
                 },
                 {
