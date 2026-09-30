@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>Museo Virtual 3D - A-Frame</title>
+
+    <!-- Solo hace falta A-Frame: ya no usamos aframe-extras ni el motor de físicas -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+    <!-- Tus datos y lógica de cuadros -->
+    <script src="assets/js/data.js"></script>
+    <script src="assets/js/sala-3d.js"></script>
+    <script src="assets/js/app.js"></script>
+
+    <script>
+      /* ======================================================================
+         SISTEMA DE COLISIONES (rejilla espacial INCREMENTAL)
+         ----------------------------------------------------------------------
+         - Cada objeto con "colisionable" es un "cuerpo". Sus triángulos se
+           agregan a una rejilla 2D (X/Z) infinita, sin reconstruir lo demás.
+         - Los triángulos se procesan POR TURNOS: unos pocos milisegundos por
+           frame (presupuestoMs). Agregar algo grande no congela el navegador.
+         - Quitar o mover un objeto solo marca sus triángulos como muertos;
+           cuando hay demasiados muertos, se compacta la memoria una vez.
+         - Se descartan pisos/techos y lo que está fuera de la altura del
+           cuerpo, así cada frame se prueban solo decenas de triángulos.
+         ====================================================================== */
+      AFRAME.registerSystem('colisiones', {
+        schema: {
+          tamCelda:     { default: 1.5 },  // metros por celda
+          presupuestoMs:{ default: 4 },    // ms por frame para procesar objetos nuevos
+          log:          { default: true }
+        },
+
+        init: function () {
+          this.mallas = [];        // se conserva por compatibilidad
+          this.listo = false;      // true cuando la carga inicial terminó
+          this.esperando = 0;      // modelos GLB iniciales aún cargando
+          this.cel = this.data.tamCelda;
+
+          this.cap = 0;
+          this.nTri = 0;
+          this.tri = null;         // Float32Array: 9 floats por triángulo
+          this.vivo = null;        // Uint8Array: 1 = activo, 0 = eliminado
+          this.marca = null;
+          this.cand = null;
+          this.sello = 0;
+          this.muertos = 0;
+          this.asegurarCapacidad(4096);
+
+          this.celdas = new Map(); // clave de celda -> [índices de triángulos]
+          this.cuerpos = new Map();
+          this.sigId = 1;
+          this.version = 0;        // cambia cuando se agregan/quitan objetos
+          this.cola = [];          // trabajos pendientes (mallas por procesar)
+
+          this._a = new THREE.Vector3(); this._b = new THREE.Vector3(); this._c = new THREE.Vector3();
+          this._e1 = new THREE.Vector3(); this._e2 = new THREE.Vector3(); this._n = new THREE.Vector3();
+          this._tmp = new Float32Array(9);
+        },
+
+        asegurarCapacidad: function (minimo) {
+          if (minimo <= this.cap) return;
+          var cap = Math.max(minimo, this.cap * 2, 4096);
+          var tri = new Float32Array(cap * 9);
+          var vivo = new Uint8Array(cap);
+          if (this.tri) {
+            tri.set(this.tri.subarray(0, this.nTri * 9));
+            vivo.set(this.vivo.subarray(0, this.nTri));
+          }
+          this.tri = tri;
+          this.vivo = vivo;
+          this.marca = new Uint32Array(cap);
+          this.cand = new Int32Array(cap);
+          this.sello = 0;
+          this.cap = cap;
+        },
+
+        clave: function (ix, iz) {
+          return (ix + 100000) * 200003 + (iz + 100000);
+        },
+
+        crearCuerpo: function (el) {
+          var id = this.sigId++;
+          this.cuerpos.set(id, { id: id, el: el, tris: [], pendientes: 0, cancelado: false });
+          return id;
+        },
+
+        encolar: function (id, malla, yMin, yMax) {
+          var cuerpo = this.cuerpos.get(id);
+          var geo = malla.geometry;
+          if (!cuerpo || !geo || !geo.attributes.position) return;
+          var pos = geo.attributes.position;
+          cuerpo.pendientes++;
+          this.cola.push({
+            c: cuerpo, pos: pos, idx: geo.index,
+            m: malla.matrixWorld.clone(),       // copia: la posición al momento de agregar
+            i: 0, total: geo.index ? geo.index.count : pos.count,
+            yMin: yMin, yMax: yMax
+          });
+        },
+
+        quitarCuerpo: function (id) {
+          var cuerpo = this.cuerpos.get(id);
+          if (!cuerpo) return;
+          cuerpo.cancelado = true;             // sus trabajos en cola se saltan
+          var vivo = this.vivo, tris = cuerpo.tris;
+          for (var i = 0; i < tris.length; i++) {
+            if (vivo[tris[i]]) { vivo[tris[i]] = 0; this.muertos++; }
+          }
+          this.cuerpos.delete(id);
+          this.version++;
+          if (this.muertos > 20000 && this.muertos > this.nTri * 0.5) this.compactar();
+        },
+
+        insertar: function (cuerpo, src, o) {
+          if (this.nTri >= this.cap) this.asegurarCapacidad(this.nTri + 1);
+          var t = this.nTri++, d = t * 9, tri = this.tri;
+          for (var k = 0; k < 9; k++) tri[d + k] = src[o + k];
+          this.vivo[t] = 1;
+          cuerpo.tris.push(t);
+
+          var cel = this.cel;
+          var cx0 = Math.floor(Math.min(src[o], src[o + 3], src[o + 6]) / cel);
+          var cx1 = Math.floor(Math.max(src[o], src[o + 3], src[o + 6]) / cel);
+          var cz0 = Math.floor(Math.min(src[o + 2], src[o + 5], src[o + 8]) / cel);
+          var cz1 = Math.floor(Math.max(src[o + 2], src[o + 5], src[o + 8]) / cel);
+          for (var gz = cz0; gz <= cz1; gz++) {
+            for (var gx = cx0; gx <= cx1; gx++) {
+              var key = this.clave(gx, gz);
+              var arr = this.celdas.get(key);
+              if (!arr) { arr = []; this.celdas.set(key, arr); }
+              arr.push(t);
+            }
+          }
+        },
+
+        // Procesa una malla hasta terminar o hasta agotar el tiempo del frame
+        procesar: function (job, limite) {
+          var pos = job.pos, idx = job.idx, m = job.m;
+          var a = this._a, b = this._b, c = this._c;
+          var e1 = this._e1, e2 = this._e2, n = this._n, tmp = this._tmp;
+          var yMin = job.yMin, yMax = job.yMax, total = job.total;
+          var i = job.i, cont = 0;
+
+          for (; i + 2 < total; i += 3) {
+            if (++cont === 512) {
+              cont = 0;
+              if (performance.now() > limite) { job.i = i; return false; }
+            }
+            a.fromBufferAttribute(pos, idx ? idx.getX(i) : i).applyMatrix4(m);
+            b.fromBufferAttribute(pos, idx ? idx.getX(i + 1) : i + 1).applyMatrix4(m);
+            c.fromBufferAttribute(pos, idx ? idx.getX(i + 2) : i + 2).applyMatrix4(m);
+
+            // Fuera de la franja de altura del cuerpo → no puede bloquear
+            if (Math.max(a.y, b.y, c.y) < yMin || Math.min(a.y, b.y, c.y) > yMax) continue;
+
+            // Casi horizontal (piso, techo) → un rayo horizontal no lo toca
+            n.crossVectors(e1.subVectors(b, a), e2.subVectors(c, a));
+            var largo = n.length();
+            if (largo < 1e-10 || Math.abs(n.y / largo) > 0.95) continue;
+
+            tmp[0] = a.x; tmp[1] = a.y; tmp[2] = a.z;
+            tmp[3] = b.x; tmp[4] = b.y; tmp[5] = b.z;
+            tmp[6] = c.x; tmp[7] = c.y; tmp[8] = c.z;
+            this.insertar(job.c, tmp, 0);
+          }
+          job.i = i;
+          return true;
+        },
+
+        // Rehace la memoria solo con triángulos vivos (ocurre muy de vez en cuando)
+        compactar: function () {
+          var viejoTri = this.tri, viejoVivo = this.vivo;
+          var vivos = this.nTri - this.muertos;
+          this.tri = null; this.vivo = null; this.cap = 0; this.nTri = 0;
+          this.asegurarCapacidad(Math.ceil(vivos * 1.25) + 1);
+          this.celdas = new Map();
+          var self = this;
+          this.cuerpos.forEach(function (cuerpo) {
+            var lista = cuerpo.tris;
+            cuerpo.tris = [];
+            for (var i = 0; i < lista.length; i++) {
+              if (viejoVivo[lista[i]]) self.insertar(cuerpo, viejoTri, lista[i] * 9);
+            }
+          });
+          this.muertos = 0;
+          if (this.data.log) console.log('[colisiones] Memoria compactada. Triángulos:', this.nTri);
+        },
+
+        tick: function () {
+          if (this.cola.length) {
+            // Durante la carga inicial se usa más tiempo; después, muy poco
+            var presupuesto = this.listo ? this.data.presupuestoMs : 25;
+            var limite = performance.now() + presupuesto;
+            while (this.cola.length) {
+              var job = this.cola[0];
+              var hecho = job.c.cancelado || this.procesar(job, limite);
+              if (!hecho) break;
+              this.cola.shift();
+              if (!job.c.cancelado && --job.c.pendientes === 0) this.terminarCuerpo(job.c);
+              if (performance.now() > limite) break;
+            }
+          }
+          if (!this.listo && !this.cola.length && this.esperando <= 0) {
+            this.listo = true;
+            if (this.data.log) console.log('[colisiones] Listas. Triángulos útiles:', this.nTri, '| celdas:', this.celdas.size);
+            this.el.emit('colisiones-listas');
+          }
+        },
+
+        terminarCuerpo: function (cuerpo) {
+          this.version++;
+          cuerpo.el.emit('colision-generada', { triangulos: cuerpo.tris.length }, false);
+          if (this.data.log && this.listo) {
+            console.log('[colisiones] Nuevo objeto:', cuerpo.el.id || cuerpo.el.tagName.toLowerCase(),
+                        '| triángulos:', cuerpo.tris.length);
+          }
+        },
+
+        // Deja en this.cand los triángulos vivos cerca de (x, z). Devuelve cuántos.
+        recolectar: function (x, z, r) {
+          var cel = this.cel;
+          var cx0 = Math.floor((x - r) / cel), cx1 = Math.floor((x + r) / cel);
+          var cz0 = Math.floor((z - r) / cel), cz1 = Math.floor((z + r) / cel);
+
+          this.sello++;
+          if (this.sello >= 0xFFFFFFF0) { this.marca.fill(0); this.sello = 1; }
+          var sello = this.sello, marca = this.marca, cand = this.cand, vivo = this.vivo;
+          var n = 0;
+
+          for (var gz = cz0; gz <= cz1; gz++) {
+            for (var gx = cx0; gx <= cx1; gx++) {
+              var arr = this.celdas.get(this.clave(gx, gz));
+              if (!arr) continue;
+              for (var j = 0, len = arr.length; j < len; j++) {
+                var t = arr[j];
+                if (vivo[t] && marca[t] !== sello) { marca[t] = sello; cand[n++] = t; }
+              }
+            }
+          }
+          return n;
+        }
+      });
+
+      /* ======================================================================
+         COMPONENTE "colisionable"
+         Funciona en cualquier entidad: gltf-model, a-box, a-cylinder, a-plane...
+         - incluir vacío  → colisiona TODO lo que tenga el modelo (lo nuevo que
+           agregues en Blender también colisiona, sin tocar el código).
+         - excluir        → si el nombre del objeto (o un padre) contiene alguna
+           de estas palabras, se ignora. Ej.: nombra en Blender "nocol_lampara".
+         - seguir         → si cambias position/rotation/scale con setAttribute,
+           la colisión se regenera sola (espera a que deje de moverse).
+         - estatico       → congela matrices internas del modelo (ahorra CPU).
+         ====================================================================== */
+      AFRAME.registerComponent('colisionable', {
+        schema: {
+          debug:     { default: false },
+          incluir:   { type: 'array', default: [] },
+          excluir:   { type: 'array', default: ['nocol', 'sincol'] },
+          alturaMin: { default: 0.1 },   // franja de altura (m) donde importan los choques
+          alturaMax: { default: 4.0 },   // debe ser mayor que la altura de los ojos
+          seguir:    { default: true },
+          estatico:  { default: true }
+        },
+
+        init: function () {
+          this.sistema = this.el.sceneEl.systems.colisiones;
+          this.cuerpo = 0;
+          this.timer = null;
+          this.copias = [];
+
+          // Mientras cargan los GLB iniciales, el jugador espera
+          this.cargaPendiente = this.el.hasAttribute('gltf-model') && !this.el.getObject3D('mesh');
+          if (this.cargaPendiente) this.sistema.esperando++;
+
+          var self = this;
+          this.alSet = function (e) {
+            if (e.detail.type !== 'mesh') return;
+            // Entidad hija con su propio "colisionable": ella se encarga
+            if (e.target !== self.el && e.target.hasAttribute && e.target.hasAttribute('colisionable')) return;
+            self.programar(0);
+          };
+          this.alQuitar = function (e) {
+            if (e.target === self.el && e.detail.type === 'mesh') self.limpiar();
+          };
+          this.alCambiar = function (e) {
+            if (e.target !== self.el) return;
+            var n = e.detail.name;
+            if (n === 'geometry') self.programar(0);
+            else if (self.data.seguir && (n === 'position' || n === 'rotation' || n === 'scale')) self.programar(150);
+          };
+          this.alError = function () { self.liberarEspera(); };
+
+          this.el.addEventListener('object3dset', this.alSet);
+          this.el.addEventListener('object3dremove', this.alQuitar);
+          this.el.addEventListener('componentchanged', this.alCambiar);
+          this.el.addEventListener('model-error', this.alError);
+
+          if (this.el.getObject3D('mesh')) this.programar(0);
+        },
+
+        update: function (anterior) {
+          // Si cambian los parámetros del componente, regenerar
+          if (anterior && Object.keys(anterior).length) this.programar(0);
+        },
+
+        remove: function () {
+          clearTimeout(this.timer);
+          this.limpiar();
+          this.liberarEspera();
+          this.el.removeEventListener('object3dset', this.alSet);
+          this.el.removeEventListener('object3dremove', this.alQuitar);
+          this.el.removeEventListener('componentchanged', this.alCambiar);
+          this.el.removeEventListener('model-error', this.alError);
+        },
+
+        // Llamar a mano si mueves el objeto con object3D.position directamente
+        regenerar: function () { this.programar(0); },
+
+        programar: function (ms) {
+          var self = this;
+          clearTimeout(this.timer);
+          this.timer = setTimeout(function () { self.generar(); }, ms);
+        },
+
+        liberarEspera: function () {
+          if (this.cargaPendiente) { this.cargaPendiente = false; this.sistema.esperando--; }
+        },
+
+        limpiar: function () {
+          if (this.cuerpo) { this.sistema.quitarCuerpo(this.cuerpo); this.cuerpo = 0; }
+          for (var i = 0; i < this.copias.length; i++) {
+            if (this.copias[i].parent) this.copias[i].parent.remove(this.copias[i]);
+          }
+          this.copias = [];
+        },
+
+        normalizar: function (lista) {
+          return lista.map(function (n) { return String(n).trim().toLowerCase(); })
+                      .filter(function (n) { return n.length; });
+        },
+
+        nombres: function (obj, raiz) {
+          var salida = [], nodo = obj;
+          while (nodo) {
+            var nombre = ((nodo.userData && nodo.userData.name) || nodo.name || '').toLowerCase();
+            if (nombre) salida.push(nombre);
+            if (nodo === raiz) break;
+            nodo = nodo.parent;
+          }
+          return salida;
+        },
+
+        contiene: function (nombres, palabras) {
+          for (var i = 0; i < nombres.length; i++)
+            for (var j = 0; j < palabras.length; j++)
+              if (nombres[i].indexOf(palabras[j]) !== -1) return true;
+          return false;
+        },
+
+        // Recorre el modelo sin meterse en entidades hijas que tengan su propio colisionable
+        recorrer: function (nodo, raiz, salida) {
+          if (nodo !== raiz && nodo.el && nodo.el !== this.el &&
+              (nodo.el.hasAttribute('colisionable') || nodo.el.hasAttribute('sin-colision'))) return;
+          if (nodo.userData && nodo.userData.esCopiaColision) return;
+          if (nodo.isMesh) salida.push(nodo);
+          var hijos = nodo.children;
+          for (var i = 0; i < hijos.length; i++) this.recorrer(hijos[i], raiz, salida);
+        },
+
+        generar: function () {
+          this.limpiar();
+          var s = this.sistema, d = this.data;
+          var raiz = this.el.object3D;
+          raiz.updateWorldMatrix(true, true);
+
+          var incluir = this.normalizar(d.incluir);
+          var excluir = this.normalizar(d.excluir);
+
+          var todas = [];
+          this.recorrer(raiz, raiz, todas);
+
+          var self = this, elegidas = [];
+          todas.forEach(function (malla) {
+            var nombres = self.nombres(malla, raiz);
+            if (excluir.length && self.contiene(nombres, excluir)) return;
+            if (incluir.length && !self.contiene(nombres, incluir)) return;
+            elegidas.push(malla);
+          });
+
+          if (incluir.length && !elegidas.length && todas.length) {
+            console.warn('[colisiones] Ningún nombre de "incluir" coincidió; se usarán todas las mallas.');
+            elegidas = todas;
+          }
+
+          this.cuerpo = s.crearCuerpo(this.el);
+          elegidas.forEach(function (malla) { s.encolar(self.cuerpo, malla, d.alturaMin, d.alturaMax); });
+          if (!elegidas.length) s.terminarCuerpo(s.cuerpos.get(this.cuerpo));
+          this.liberarEspera();
+
+          if (d.debug) {
+            var material = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide, wireframe: true });
+            elegidas.forEach(function (o) {
+              var copia = new THREE.Mesh(o.geometry, material);
+              copia.userData.esCopiaColision = true;
+              copia.frustumCulled = false;
+              o.add(copia);
+              self.copias.push(copia);
+            });
+          }
+
+          // Nodos internos del modelo (no entidades): no recalcular su matriz local cada frame
+          if (d.estatico) {
+            raiz.traverse(function (o) { if (o !== raiz && !o.el) o.matrixAutoUpdate = false; });
+          }
+        }
+      });
+
+      /* ======================================================================
+         COMPONENTE "auto-colision" (se pone en un contenedor)
+         Toda entidad que se agregue dentro (desde HTML o desde JS) recibe
+         "colisionable" automáticamente. Para excluir una, ponle el atributo
+         sin-colision o la clase "sin-colision".
+         ====================================================================== */
+      AFRAME.registerComponent('auto-colision', {
+        schema: {
+          config:  { type: 'string', default: '' },   // se pasa tal cual a "colisionable"
+          ignorar: { type: 'string', default: '[sin-colision], .sin-colision' }
+        },
+
+        init: function () {
+          var self = this;
+          this.observador = new MutationObserver(function (cambios) {
+            for (var i = 0; i < cambios.length; i++) {
+              var nodos = cambios[i].addedNodes;
+              for (var j = 0; j < nodos.length; j++) self.revisarArbol(nodos[j]);
+            }
+          });
+          this.observador.observe(this.el, { childList: true, subtree: true });
+          var hijos = this.el.children;
+          for (var k = 0; k < hijos.length; k++) this.revisarArbol(hijos[k]);
+        },
+
+        remove: function () { this.observador.disconnect(); },
+
+        revisarArbol: function (nodo) {
+          if (nodo.nodeType !== 1) return;
+          this.revisar(nodo);
+          var internos = nodo.querySelectorAll('*');
+          for (var i = 0; i < internos.length; i++) this.revisar(internos[i]);
+        },
+
+        revisar: function (el) {
+          if (!el.isEntity || el === this.el || el.hasAttribute('colisionable')) return;
+          if (this.data.ignorar && el.closest(this.data.ignorar)) return;
+          el.setAttribute('colisionable', this.data.config);
+        }
+      });
+
+      /* ======================================================================
+         COMPONENTE "caminante" (se pone en el #player)
+         ----------------------------------------------------------------------
+         Movimiento tipo "chocar y deslizar", sin rebotes:
+           1. Antes de moverse, se quita la parte del movimiento que va HACIA
+              las paredes que ya se están tocando → presionar contra una pared
+              no mete al jugador en ella, así que no hay nada que corregir.
+           2. El paso se divide en sub-pasos cortos (no atraviesa objetos).
+           3. Si aun así hay penetración, se corrige primero la más profunda,
+              a lo largo de la normal de la pared, y se repite (máx. 6 veces).
+         Detección EXACTA círculo vs. triángulo (ya no se usan 8 rayos):
+           cada triángulo se corta a la altura de rodillas, cadera y pecho, y
+           se mide la distancia real del jugador a ese corte. Así no hay
+           "huecos" entre rayos que hagan perder el contacto, y las esquinas
+           de vitrinas y marcos de puertas empujan suave, no de golpe.
+         ====================================================================== */
+      AFRAME.registerComponent('caminante', {
+        schema: {
+          velocidad:   { default: 5 },
+          correr:      { default: 10 },
+          radio:       { default: 0.7 },
+          alturaOjos:  { default: 3.2 },
+          alturaSuelo: { default: 0 },
+          ajustarAltura: { default: true }  // RePág / AvPág suben o bajan la cámara
+        },
+
+        init: function () {
+          this.sistema = this.el.sceneEl.systems.colisiones;
+          this.teclas = {};
+          this.quat = new THREE.Quaternion();
+          this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
+
+          this.piel = 0.03;      // margen para detectar "estoy tocando la pared"
+          this.pasoMax = 0.15;   // tamaño máximo de sub-paso (m)
+
+          // Alturas de corte como FRACCIÓN de la altura de los ojos
+          // (rodillas, cadera, pecho). Si subes la cámara, suben con ella.
+          this.alturas = [0.12, 0.5, 0.85];
+
+          // Contactos (normales de pared) sin crear basura por frame
+          this.maxC = 12;
+          this.cN = new Float32Array(this.maxC * 2);  // normales x,z
+          this.cP = new Float32Array(this.maxC);      // penetración
+          this.nC = 0;
+          this.contactos = new Float32Array(this.maxC * 2);
+          this.nContactos = 0;
+          this.versionContactos = -1;
+          this.cX = 0; this.cZ = 0;   // posición donde se midieron los contactos
+          this._mov = { x: 0, z: 0 };
+          // Joystick táctil: x = derecha(+)/izquierda(-), y = atrás(+)/adelante(-), m = fuerza 0..1
+          this.joy = { x: 0, y: 0, m: 0 };
+
+          var self = this;
+          this.alPresionar = function (e) {
+            self.teclas[e.code] = true;
+            if (self.data.ajustarAltura && (e.code === 'PageUp' || e.code === 'PageDown')) {
+              var nueva = self.data.alturaOjos + (e.code === 'PageUp' ? 0.1 : -0.1);
+              nueva = Math.max(0.5, Math.round(nueva * 10) / 10);
+              self.el.setAttribute('caminante', 'alturaOjos', nueva);
+              console.log('[caminante] alturaOjos =', nueva, '→ copia este valor en el HTML');
+            }
+          };
+          this.alSoltar = function (e) { self.teclas[e.code] = false; };
+          this.alPerderFoco = function () { self.teclas = {}; };
+          window.addEventListener('keydown', this.alPresionar);
+          window.addEventListener('keyup', this.alSoltar);
+          window.addEventListener('blur', this.alPerderFoco);
+        },
+
+        remove: function () {
+          window.removeEventListener('keydown', this.alPresionar);
+          window.removeEventListener('keyup', this.alSoltar);
+          window.removeEventListener('blur', this.alPerderFoco);
+        },
+
+        tick: function (t, dtMs) {
+          var camara = this.el.sceneEl.camera;
+          if (!dtMs || !camara) return;
+
+          var d = this.data;
+          var pos = this.el.object3D.position;
+          pos.y = d.alturaSuelo + d.alturaOjos;
+
+          if (!this.sistema.listo) return;
+
+          var k = this.teclas, j = this.joy, fuerza = 1;
+          var adelante = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
+          var lado = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
+          if (!adelante && !lado && j.m > 0.12) {      // sin teclas: manda el joystick
+            adelante = -j.y; lado = j.x; fuerza = 0.35 + 0.65 * j.m;   // suave al inicio
+          }
+          if (!adelante && !lado) return;
+
+          camara.getWorldQuaternion(this.quat);
+          this.euler.setFromQuaternion(this.quat);
+          var yaw = this.euler.y;
+          var mx = -Math.sin(yaw) * adelante + Math.cos(yaw) * lado;
+          var mz = -Math.cos(yaw) * adelante - Math.sin(yaw) * lado;
+          var largo = Math.sqrt(mx * mx + mz * mz);
+          if (!largo) return;
+
+          var dt = Math.min(dtMs, 30) / 1000;
+          var corre = k.ShiftLeft || k.ShiftRight || j.m > 0.95;   // joystick al tope = correr
+          var vel = (corre ? d.correr : d.velocidad) * Math.min(1, fuerza);
+          this.mover(pos, (mx / largo) * vel * dt, (mz / largo) * vel * dt);
+        },
+
+        // Quita del movimiento la parte que va hacia las paredes tocadas
+        proyectar: function (mov) {
+          var c = this.contactos;
+          for (var pasada = 0; pasada < 3; pasada++) {
+            var cambio = false;
+            for (var i = 0; i < this.nContactos; i++) {
+              var nx = c[i * 2], nz = c[i * 2 + 1];
+              var dot = mov.x * nx + mov.z * nz;
+              if (dot < 0) { mov.x -= nx * dot; mov.z -= nz * dot; cambio = true; }
+            }
+            if (!cambio) break;
+          }
+          // Esquina interior (dos paredes que se cierran): quedarse quieto
+          for (var j = 0; j < this.nContactos; j++) {
+            if (mov.x * c[j * 2] + mov.z * c[j * 2 + 1] < -1e-6) { mov.x = 0; mov.z = 0; return; }
+          }
+        },
+
+        mover: function (pos, movX, movZ) {
+          // Los contactos viejos no valen si cambió la escena o si el jugador
+          // fue movido desde fuera (teletransporte, otro script, etc.)
+          var ddx = pos.x - this.cX, ddz = pos.z - this.cZ;
+          if (this.versionContactos !== this.sistema.version || ddx * ddx + ddz * ddz > 1e-4) {
+            this.nContactos = 0;
+            this.resolver(pos);
+          }
+
+          var mov = this._mov;
+          mov.x = movX; mov.z = movZ;
+          this.proyectar(mov);
+
+          var dist = Math.sqrt(mov.x * mov.x + mov.z * mov.z);
+          if (dist < 1e-6) return;  // empujando de frente a la pared: no se mueve, no rebota
+
+          var restante = dist;
+          while (restante > 1e-6) {
+            var largo = Math.sqrt(mov.x * mov.x + mov.z * mov.z);
+            if (largo < 1e-6) break;
+            var paso = Math.min(this.pasoMax, restante);
+            pos.x += (mov.x / largo) * paso;
+            pos.z += (mov.z / largo) * paso;
+            restante -= paso;
+
+            this.resolver(pos);
+            this.proyectar(mov);   // deslizar por la nueva pared en el siguiente sub-paso
+          }
+        },
+
+        // Saca al jugador de las paredes: primero la penetración más profunda
+        resolver: function (pos) {
+          for (var it = 0; ; it++) {
+            this.evaluar(pos);
+            var mayor = 1e-4, idx = -1;
+            for (var i = 0; i < this.nC; i++) {
+              if (this.cP[i] > mayor) { mayor = this.cP[i]; idx = i; }
+            }
+            if (idx < 0 || it >= 6) break;
+            pos.x += this.cN[idx * 2] * mayor;
+            pos.z += this.cN[idx * 2 + 1] * mayor;
+          }
+          // Guardar las paredes que se tocan para el siguiente frame
+          this.contactos.set(this.cN);
+          this.nContactos = this.nC;
+          this.versionContactos = this.sistema.version;
+          this.cX = pos.x; this.cZ = pos.z;
+        },
+
+        agregarContacto: function (nx, nz, pen) {
+          var cN = this.cN, cP = this.cP;
+          for (var i = 0; i < this.nC; i++) {
+            if (cN[i * 2] * nx + cN[i * 2 + 1] * nz > 0.985) {   // misma pared
+              if (pen > cP[i]) { cP[i] = pen; cN[i * 2] = nx; cN[i * 2 + 1] = nz; }
+              return;
+            }
+          }
+          if (this.nC < this.maxC) {
+            cN[this.nC * 2] = nx; cN[this.nC * 2 + 1] = nz; cP[this.nC] = pen;
+            this.nC++;
+            return;
+          }
+          // Lista llena: reemplazar el contacto menos profundo si este es más profundo
+          var menor = 0;
+          for (var j = 1; j < this.nC; j++) if (cP[j] < cP[menor]) menor = j;
+          if (pen > cP[menor]) { cN[menor * 2] = nx; cN[menor * 2 + 1] = nz; cP[menor] = pen; }
+        },
+
+        // Corta cada triángulo cercano a varias alturas y mide la distancia
+        // exacta (2D) del centro del jugador a ese corte → normal + penetración
+        evaluar: function (pos) {
+          var s = this.sistema;
+          var d = this.data;
+          var r = d.radio;
+          var alcance = r + this.piel;
+          var alcance2 = alcance * alcance;
+          this.nC = 0;
+
+          var n = s.recolectar(pos.x, pos.z, alcance);
+          if (!n) return;
+
+          var tri = s.tri, cand = s.cand, alturas = this.alturas;
+          var ox = pos.x, oz = pos.z;
+
+          for (var c = 0; c < n; c++) {
+            var o = cand[c] * 9;
+            var x0 = tri[o],     y0 = tri[o + 1], z0 = tri[o + 2];
+            var x1 = tri[o + 3], y1 = tri[o + 4], z1 = tri[o + 5];
+            var x2 = tri[o + 6], y2 = tri[o + 7], z2 = tri[o + 8];
+
+            // Descarte rápido por caja 2D
+            if (Math.min(x0, x1, x2) > ox + alcance || Math.max(x0, x1, x2) < ox - alcance ||
+                Math.min(z0, z1, z2) > oz + alcance || Math.max(z0, z1, z2) < oz - alcance) continue;
+
+            var mejorD2 = alcance2, bnx = 0, bnz = 0, hay = false;
+
+            for (var hi = 0; hi < alturas.length; hi++) {
+              var h = d.alturaSuelo + alturas[hi] * d.alturaOjos;
+              var d0 = y0 - h, d1 = y1 - h, d2 = y2 - h;
+              if ((d0 > 0 && d1 > 0 && d2 > 0) || (d0 <= 0 && d1 <= 0 && d2 <= 0)) continue;
+
+              // Segmento donde el plano horizontal corta al triángulo
+              var ax, az, bx, bz, k = 0, tt;
+              if ((d0 <= 0) !== (d1 <= 0)) { tt = d0 / (d0 - d1); ax = x0 + (x1 - x0) * tt; az = z0 + (z1 - z0) * tt; k = 1; }
+              if ((d1 <= 0) !== (d2 <= 0)) {
+                tt = d1 / (d1 - d2);
+                if (k) { bx = x1 + (x2 - x1) * tt; bz = z1 + (z2 - z1) * tt; }
+                else   { ax = x1 + (x2 - x1) * tt; az = z1 + (z2 - z1) * tt; }
+                k++;
+              }
+              if (k < 2 && (d2 <= 0) !== (d0 <= 0)) { tt = d2 / (d2 - d0); bx = x2 + (x0 - x2) * tt; bz = z2 + (z0 - z2) * tt; k++; }
+              if (k < 2) continue;
+
+              // Punto más cercano del segmento al centro del jugador
+              var sx = bx - ax, sz = bz - az;
+              var l2 = sx * sx + sz * sz;
+              var u = l2 > 1e-12 ? ((ox - ax) * sx + (oz - az) * sz) / l2 : 0;
+              if (u < 0) u = 0; else if (u > 1) u = 1;
+              var px = ox - (ax + sx * u), pz = oz - (az + sz * u);
+              var dd = px * px + pz * pz;
+
+              if (dd < mejorD2) {
+                var dist = Math.sqrt(dd);
+                if (dist > 1e-6) {
+                  bnx = px / dist; bnz = pz / dist;
+                } else {
+                  // Centro justo sobre la superficie: usar la normal de la cara
+                  var nx = (y1 - y0) * (z2 - z0) - (z1 - z0) * (y2 - y0);
+                  var nz = (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0);
+                  var ln = Math.sqrt(nx * nx + nz * nz);
+                  if (ln < 1e-9) continue;
+                  bnx = nx / ln; bnz = nz / ln;
+                }
+                mejorD2 = dd; hay = true;
+              }
+            }
+
+            if (hay) this.agregarContacto(bnx, bnz, r - Math.sqrt(mejorD2));
+          }
+        }
+      });
+
+
+
+      /* ======================================================================
+         SISTEMA "rendimiento"
+         - Limita la resolución en pantallas de alta densidad (celulares 3x, 4K).
+         - Resolución adaptable: si los FPS bajan, reduce un poco la resolución
+           interna; si sobran, la sube. Así el recorrido se mantiene fluido.
+         - Detiene el dibujado 3D mientras está abierta la ficha (modal): la
+           tarjeta de video queda libre para el video o YouTube.
+         ====================================================================== */
+      AFRAME.registerSystem('rendimiento', {
+        schema: {
+          adaptable:  { default: true },
+          fpsMinimo:  { default: 45 },   // por debajo de esto baja la resolución
+          fpsHolgado: { default: 57 },   // por encima de esto la vuelve a subir
+          escalaMin:  { default: 0.6 },
+          dprMax:     { default: 1.5 }   // densidad de píxeles máxima
+        },
+
+        init: function () {
+          this.escala = 1;
+          this.acum = 0; this.frames = 0; this.espera = 0;
+          this.pausado = false;
+          var self = this, escena = this.el;
+          var movil = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+          this.dprBase = Math.min(window.devicePixelRatio || 1, movil ? 1.25 : this.data.dprMax);
+
+          var aplicar = function () { self.aplicar(); };
+          if (escena.renderer) aplicar(); else escena.addEventListener('renderstart', aplicar, { once: true });
+
+          // Pausar / reanudar el dibujado (lo pide sala-3d.js al abrir/cerrar la ficha)
+          escena.addEventListener('museo-render', function (e) { self.pausar(!!(e.detail && e.detail.pausado)); });
+          document.addEventListener('visibilitychange', function () { self.acum = 0; self.frames = 0; });
+        },
+
+        aplicar: function () {
+          var r = this.el.renderer;
+          if (!r) return;
+          r.setPixelRatio(this.dprBase * this.escala);
+          if (this.el.resize) this.el.resize();   // A-Frame recalcula el tamaño respetando maxCanvas
+        },
+
+        pausar: function (si) {
+          var escena = this.el, r = escena.renderer;
+          if (!r || this.pausado === si || escena.is('vr-mode')) return;
+          this.pausado = si;
+          r.setAnimationLoop(si ? null : escena.render);
+          this.acum = 0; this.frames = 0; this.espera = 1500;
+        },
+
+        tick: function (t, dt) {
+          if (!this.data.adaptable || !dt || dt > 250 || document.hidden) return;
+          if (this.espera > 0) { this.espera -= dt; return; }
+          this.acum += dt; this.frames++;
+          if (this.acum < 2000) return;
+
+          var fps = this.frames * 1000 / this.acum;
+          this.acum = 0; this.frames = 0;
+          var antes = this.escala;
+          if (fps < this.data.fpsMinimo) this.escala = Math.max(this.data.escalaMin, this.escala - 0.15);
+          else if (fps > this.data.fpsHolgado) this.escala = Math.min(1, this.escala + 0.1);
+          if (this.escala !== antes) {
+            this.aplicar();
+            this.espera = 3000;   // dar tiempo a que se estabilice antes de volver a medir
+          }
+        }
+      });
+
+      /* ======================================================================
+         COMPONENTE "optimizar-modelo" (en el GLB del museo)
+         - caraUnica: no dibuja la cara trasera de paredes y objetos (en Blender
+           todos los materiales venían "de doble cara"). Casi la mitad de
+           trabajo para la tarjeta de video. Si alguna pared desaparece al
+           verla desde un lado, pon caraUnica: false.
+         ====================================================================== */
+      AFRAME.registerComponent('optimizar-modelo', {
+        schema: {
+          caraUnica: { default: false },
+          // Materiales que SIEMPRE se dibujan por ambos lados aunque caraUnica esté activo
+          // (ej.: "RammedEarth018_1K, StoneBricksSplitface001_1K")
+          dobleCara: { type: 'array', default: [] }
+        },
+        init: function () {
+          var self = this;
+          this.el.addEventListener('model-loaded', function () { self.optimizar(); });
+        },
+        optimizar: function () {
+          var d = this.data, vistos = new Set();
+          var excepciones = d.dobleCara.map(function (n) { return String(n).trim().toLowerCase(); });
+          this.el.object3D.traverse(function (o) {
+            if (!o.isMesh) return;
+            var mats = Array.isArray(o.material) ? o.material : [o.material];
+            mats.forEach(function (m) {
+              if (!m || vistos.has(m)) return;
+              vistos.add(m);
+              var nombre = (m.name || '').toLowerCase();
+              var excluido = excepciones.some(function (n) { return n && nombre.indexOf(n) !== -1; });
+              if (d.caraUnica && !excluido && m.side === THREE.DoubleSide && !m.transparent) {
+                m.side = THREE.FrontSide;
+                m.needsUpdate = true;
+              }
+            });
+          });
+        }
+      });
+
+      /* ======================================================================
+         COMPONENTE "auto-iluminar" (Detecta los Empties de Blender)
+         ====================================================================== */
+      AFRAME.registerComponent('auto-iluminar', {
+        schema: {
+          buscar: { type: 'string', default: 'luz_' },
+          color: { type: 'color', default: '#ffaa55' },
+          intensidad: { default: 2.2 },
+          distancia: { default: 13 }
+        },
+        init: function () {
+          this.el.addEventListener('model-loaded', this.crearLuces.bind(this));
+        },
+        crearLuces: function () {
+          var raiz = this.el.object3D;
+          var criterio = this.data.buscar.toLowerCase();
+          var self = this;
+          var contador = 0;
+
+          raiz.traverse(function (nodo) {
+            if (nodo.name) {
+              var nombreNodo = nodo.name.toLowerCase();
+              if (nombreNodo.indexOf(criterio) !== -1) {
+                var posicionGlobal = new THREE.Vector3();
+                nodo.getWorldPosition(posicionGlobal);
+
+                var luzEl = document.createElement('a-entity');
+                luzEl.setAttribute('light', {
+                  type: 'point',
+                  color: self.data.color,
+                  intensity: self.data.intensidad,
+                  distance: self.data.distancia
+                });
+                luzEl.setAttribute('position', `${posicionGlobal.x} ${posicionGlobal.y} ${posicionGlobal.z}`);
+
+                self.el.sceneEl.appendChild(luzEl);
+                contador++;
+              }
+            }
+          });
+          console.log('[auto-iluminar] Total de luces automáticas creadas:', contador);
+        }
+      });
+    </script>
+    <style>
+      /* Pantalla de carga con la paleta del sitio (analógico por defecto) */
+      #carga {
+        --c-fondo: #ece0c4; --c-texto: #2c2013; --c-suave: #6b5539;
+        --c-acento: #a9762f; --c-acento-2: #c9932f; --c-riel: rgba(44, 32, 19, 0.14);
+        position: fixed; inset: 0; z-index: 100000;
+        display: grid; place-items: center;
+        background: radial-gradient(60% 60% at 30% 20%, color-mix(in srgb, var(--c-acento) 22%, transparent), transparent 70%), var(--c-fondo);
+        color: var(--c-texto); font-family: "Inter", system-ui, sans-serif;
+        transition: opacity 0.6s ease, visibility 0.6s ease;
+      }
+      html[data-mode="digital"] #carga {
+        --c-fondo: #060a14; --c-texto: #e9f1f8; --c-suave: #7e93aa;
+        --c-acento: #38e6d4; --c-acento-2: #d9b24c; --c-riel: rgba(120, 220, 255, 0.14);
+      }
+      html.a11y-dark #carga { --c-fondo: #08090b; --c-texto: #f4f2ee; --c-suave: #a6a196; --c-riel: rgba(255, 255, 255, 0.12); }
+      #carga.is-lista { opacity: 0; visibility: hidden; }
+      .carga__caja { width: min(360px, 84vw); }
+      .carga__eyebrow { margin: 0 0 6px; font-size: 0.85rem; font-weight: 600; color: var(--c-acento); }
+      .carga__titulo { margin: 0 0 20px; font-family: "Fraunces", Georgia, serif; font-size: 1.8rem; font-weight: 600; }
+      .carga__barra { height: 4px; border-radius: 4px; background: var(--c-riel); overflow: hidden; }
+      .carga__barra span { display: block; height: 100%; width: 3%; background: linear-gradient(90deg, var(--c-acento), var(--c-acento-2)); border-radius: 4px; transition: width 0.3s ease; }
+      .carga__estado { margin: 12px 0 0; font-size: 0.85rem; color: var(--c-suave); }
+      @media (prefers-reduced-motion: reduce) { #carga, .carga__barra span { transition: none; } }
+    </style>
+  </head>
+
+  <body>
+    <!-- maxCanvas limita la resolución interna en pantallas 2K/4K (gran ahorro de GPU) -->
+    <!-- Pantalla de carga -->
+    <div id="carga" role="status" aria-live="polite">
+      <div class="carga__caja">
+        <p class="carga__eyebrow" id="carga-institucion">Museo virtual</p>
+        <p class="carga__titulo">Preparando la sala</p>
+        <div class="carga__barra"><span id="carga-progreso"></span></div>
+        <p class="carga__estado" id="carga-estado">Descargando el edificio…</p>
+      </div>
+    </div>
+
+    <a-scene renderer="antialias: true; maxCanvasWidth: 1920; maxCanvasHeight: 1080; powerPreference: high-performance"
+             loading-screen="enabled: false"
+             vr-mode-ui="enabled: false"
+             rendimiento="adaptable: true; fpsMinimo: 45"
+             colisiones="tamCelda: 1.5; presupuestoMs: 4; log: false">
+
+      <a-assets timeout="120000">
+        <a-asset-item id="modelo-museo" src="assets/museo.glb"></a-asset-item>
+      </a-assets>
+
+      <!-- JUGADOR -->
+      <!-- alturaOjos: altura de la cámara. Tu museo mide ~7 m de alto y la vitrina ~6 m,
+           así que 3.2 da una vista proporcionada. Ajústalo en vivo con RePág / AvPág. -->
+      <a-entity id="player"
+                position="0 3.2 4"
+                caminante="velocidad: 5; correr: 10; radio: 0.7; alturaOjos: 3.2; alturaSuelo: 0">
+        <a-camera position="0 0 0"
+                  wasd-controls-enabled="false"
+                  look-controls="pointerLockEnabled: true; magicWindowTrackingEnabled: false">
+          <a-cursor fuse="false"
+                    raycaster="objects: .interactuable"
+                    position="0 0 -1"
+                    geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.015"
+                    material="color: #FFF; shader: flat">
+          </a-cursor>
+        </a-camera>
+      </a-entity>
+
+      <!-- MODELO DEL MUSEO: colisiona TODO (Museo, vitrina y lo que agregues en Blender)
+           excepto objetos cuyo nombre contenga "nocol" o "sincol" -->
+      <a-entity id="museo-modelo"
+                gltf-model="#modelo-museo"
+                position="0 0 0"
+                scale="1 1 1"
+                colisionable="debug: false; excluir: nocol, sincol; alturaMax: 4"
+                optimizar-modelo="caraUnica: false"
+                auto-iluminar="buscar: luz_; color: #ffaa55; intensidad: 2.2; distancia: 13">
+      </a-entity>
+
+      <!-- CONTENEDOR DONDE SE CARGARÁN LOS CUADROS AUTOMÁTICAMENTE -->
+      <a-entity id="elementos-exhibicion"></a-entity>
+
+      <!-- OBJETOS NUEVOS: todo lo que pongas aquí (HTML o JS) colisiona solo -->
+      <a-entity id="objetos-solidos" auto-colision>
+        <!-- Ejemplos:
+        <a-box position="2 0.5 0" width="1" height="1" depth="1" color="#886644"></a-box>
+        <a-entity gltf-model="assets/otra_vitrina.glb" position="-3 0 2"></a-entity>
+        <a-cylinder sin-colision position="0 0.5 -2" radius="0.3"></a-cylinder>
+        -->
+      </a-entity>
+
+      <a-sky color="#111111"></a-sky>
+
+    </a-scene>
+
+    <script>
+      /* Pantalla de carga: progreso real del GLB y cierre cuando las colisiones están listas */
+      (function () {
+        var carga = document.getElementById('carga');
+        var barra = document.getElementById('carga-progreso');
+        var estado = document.getElementById('carga-estado');
+        var escena = document.querySelector('a-scene');
+        var modelo = document.getElementById('modelo-museo');
+        if (window.museoData && museoData.institucion) {
+          document.getElementById('carga-institucion').textContent = museoData.institucion;
+        }
+        var poner = function (p, txt) {
+          barra.style.width = Math.max(3, Math.min(100, p)) + '%';
+          if (txt) estado.textContent = txt;
+        };
+        modelo.addEventListener('progress', function (e) {
+          var d = e.detail || {};
+          if (d.totalBytes) poner(d.loadedBytes / d.totalBytes * 85,
+            'Descargando el edificio… ' + Math.round(d.loadedBytes / 1048576) + ' de ' + Math.round(d.totalBytes / 1048576) + ' MB');
+        });
+        document.getElementById('museo-modelo').addEventListener('model-loaded', function () {
+          poner(92, 'Colocando las obras…');
+        });
+        var cerrar = function () {
+          poner(100, 'Listo');
+          setTimeout(function () { carga.classList.add('is-lista'); }, 250);
+        };
+        escena.addEventListener('colisiones-listas', cerrar, { once: true });
+        setTimeout(cerrar, 60000);   // respaldo: nunca dejar la pantalla bloqueada
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="es" data-mode="antiguo">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fundación FADIS presenta: Archivo FOCINE</title>
+  <meta name="description"
+    content="Museo virtual comunitario que unifica la memoria histórica del Valle de Teotihuacán, Tecámac, Acolman, Otumba, Axapusco y Temascalapa entre 1905 y 1990.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/inicio.css">
+</head>
+
+<body>
+
+  <a href="#inicio" class="skip-link">Saltar al contenido principal</a>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="cb-protanopia">
+        <feColorMatrix type="matrix" values="0.567,0.433,0,0,0  0.558,0.442,0,0,0  0,0.242,0.758,0,0  0,0,0,1,0" />
+      </filter>
+      <filter id="cb-deuteranopia">
+        <feColorMatrix type="matrix" values="0.625,0.375,0,0,0  0.7,0.3,0,0,0  0,0.3,0.7,0,0  0,0,0,1,0" />
+      </filter>
+      <filter id="cb-tritanopia">
+        <feColorMatrix type="matrix" values="0.95,0.05,0,0,0  0,0.433,0.567,0,0  0,0.475,0.525,0,0  0,0,0,1,0" />
+      </filter>
+      <filter id="cb-achromatopsia">
+        <feColorMatrix type="matrix"
+          values="0.299,0.587,0.114,0,0  0.299,0.587,0.114,0,0  0.299,0.587,0.114,0,0  0,0,0,1,0" />
+      </filter>
+    </defs>
+  </svg>
+
+  <canvas id="meshCanvas" aria-hidden="true"></canvas>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">F</span>
+        <span class="brand-text">
+          <span class="fundacion">Fundación FADIS presenta</span>
+          <span class="titulo">Archivo FOCINE</span>
+        </span>
+      </div>
+
+      <nav class="main-nav" id="mainNav" aria-label="Navegación principal">
+        <a href="#inicio">Inicio</a>
+        <a href="#historia">Historia (1905–1990)</a>
+        <a href="#pulso">Territorio e Identidad</a>
+        <a href="#archivo">El Archivo (Rescate)</a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="mode-switch" id="modeSwitch" aria-pressed="false"
+          aria-label="Cambiar entre modo Antiguo y modo Digital">
+          <span class="mode-switch-track">
+            <span class="mode-switch-labels" aria-hidden="true"><span>Antiguo</span><span>Digital</span></span>
+            <span class="mode-switch-thumb"></span>
+          </span>
+        </button>
+        <a href="salas.html" class="cta-btn">
+          <span class="long">Entrar a las salas</span><span aria-hidden="true">→</span>
+        </a>
+        <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="mainNav"
+          aria-label="Abrir menú de navegación">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="inicio">
+
+    <section class="hero">
+      <div class="hero-bg-glow" aria-hidden="true"></div>
+      <div class="wrap hero-grid">
+        <div>
+          <span class="hero-eyebrow"><span class="dot" aria-hidden="true"></span>Museo virtual comunitario · Valle de
+            Teotihuacán</span>
+          <h1>Un mismo territorio, <em>una sola memoria</em>, ochenta y cinco años de historia.</h1>
+          <p class="lede">Teotihuacán, San Martín de las Pirámides, Acolman, Otumba, Axapusco, Tecámac y Temascalapa
+            comparten calles, fiestas y silencios desde 1905. El Archivo FOCINE reúne ese pasado disperso para que siga
+            contándose.</p>
+          <div class="hero-cta-row">
+            <a href="salas.html" class="cta-btn">Entrar a las salas <span aria-hidden="true">→</span></a>
+            <div class="hero-years">
+              <strong>1905 — 1990</strong>
+              seis municipios, un solo latido
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-panel" data-reveal>
+          <div class="hero-panel-texture" aria-hidden="true"></div>
+          <div class="hero-panel-caption">
+            <span class="place-list">Teotihuacán · Tecámac · Acolman<br>Otumba · Axapusco · Temascalapa</span>
+            <p>Doce pueblos originarios, una región, un archivo compartido.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="scroll-cue" aria-hidden="true">
+        <span>Desplázate</span>
+        <span class="stick"></span>
+      </div>
+    </section>
+
+    <section class="pulso" id="pulso">
+      <div class="wrap">
+        <div class="section-head" data-reveal>
+          <span class="eyebrow">Territorio e identidad</span>
+          <h2>El pulso de la región</h2>
+          <p>Seis municipios, un mismo latido histórico. Cada lugar aporta su propio acento a una memoria que nunca fue
+            independiente entre sí.</p>
+        </div>
+
+        <div class="pulso-grid">
+          <article class="pulso-card" data-reveal>
+            <span class="glow" aria-hidden="true"></span>
+            <span class="pulso-index" aria-hidden="true">Cabecera prehispánica</span>
+            <h3>Teotihuacán</h3>
+            <p>San Francisco Mazapa, San Sebastián Xolalpan y los pueblos que crecieron a la sombra de las pirámides,
+              entre el turismo naciente y la vida agrícola.</p>
+          </article>
+
+          <article class="pulso-card" data-reveal>
+            <span class="glow" aria-hidden="true"></span>
+            <span class="pulso-index" aria-hidden="true">Trazo virreinal</span>
+            <h3>Acolman</h3>
+            <p>El convento agustino y Tepexpan como puerta de entrada al valle: fe, comercio y caminos que unieron a la
+              región durante siglos.</p>
+          </article>
+
+          <article class="pulso-card" data-reveal>
+            <span class="glow" aria-hidden="true"></span>
+            <span class="pulso-index" aria-hidden="true">Fundación pirámide-céntrica</span>
+            <h3>San Martín de las Pirámides</h3>
+            <p>Un municipio joven, nacido del reparto agrario, que construyó identidad propia frente al monumento que le
+              da nombre.</p>
+          </article>
+
+          <article class="pulso-card" data-reveal>
+            <span class="glow" aria-hidden="true"></span>
+            <span class="pulso-index" aria-hidden="true">Rutas y ferias</span>
+            <h3>Otumba</h3>
+            <p>Mercado histórico y tierra de arrieros; sus plazas registraron el pulso comercial de todo el altiplano.
+            </p>
+          </article>
+
+          <article class="pulso-card" data-reveal>
+            <span class="glow" aria-hidden="true"></span>
+            <span class="pulso-index" aria-hidden="true">Frontera agrícola</span>
+            <h3>Axapusco</h3>
+            <p>Llanuras de cultivo y pequeñas rancherías que sostuvieron a la región durante el siglo de mayor
+              transformación.</p>
+          </article>
+
+          <article class="pulso-card" data-reveal>
+            <span class="glow" aria-hidden="true"></span>
+            <span class="pulso-index" aria-hidden="true">Doce pueblos, una identidad</span>
+            <h3>Tecámac y Temascalapa</h3>
+            <p>Ozumbilla, San Pedro Atzompa, Santa María Ajoloapan y otros nueve pueblos originarios tejen, junto con
+              Temascalapa, el borde norte de esta memoria compartida.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="historia">
+      <div class="wrap">
+        <div class="section-head" data-reveal>
+          <span class="eyebrow">Historia · 1905–1990</span>
+          <h2>Ocho décadas contadas en fragmentos</h2>
+          <p>Un recorrido no lineal por los hitos que transformaron al valle, pensado para explorarse deslizando, década
+            a década.</p>
+        </div>
+
+        <div class="timeline-rail" aria-hidden="true">
+          <div class="timeline-rail-fill" id="timelineFill"></div>
+        </div>
+
+        <div class="timeline-scroller" id="timelineScroller" tabindex="0" role="region"
+          aria-label="Línea de tiempo histórica, desplazable horizontalmente">
+          <article class="timeline-card" data-reveal>
+            <span class="years">1905</span>
+            <h3>El valle antes del reparto</h3>
+            <p>Haciendas, caminos de tierra y pueblos organizados en torno a la parroquia y la plaza. El punto de
+              partida del archivo.</p>
+          </article>
+          <article class="timeline-card" data-reveal>
+            <span class="years">1917</span>
+            <h3>Reparto agrario y nuevos pueblos</h3>
+            <p>La reforma agraria redibuja el mapa: nacen ejidos y se consolidan identidades locales, entre ellas San
+              Martín de las Pirámides.</p>
+          </article>
+          <article class="timeline-card" data-reveal>
+            <span class="years">1933</span>
+            <h3>Las pirámides se abren al mundo</h3>
+            <p>Las primeras oleadas de visitantes llegan a Teotihuacán, y con ellas, las primeras cámaras.</p>
+          </article>
+          <article class="timeline-card" data-reveal>
+            <span class="years">1948</span>
+            <h3>Caminos, ferias y radio</h3>
+            <p>La carretera acerca al valle con la capital. Otumba y Acolman viven el auge de sus ferias regionales.</p>
+          </article>
+          <article class="timeline-card" data-reveal>
+            <span class="years">1962</span>
+            <h3>Escuelas y electrificación</h3>
+            <p>La llegada de la luz eléctrica y las primeras escuelas rurales cambian el ritmo cotidiano de los doce
+              pueblos de Tecámac.</p>
+          </article>
+          <article class="timeline-card" data-reveal>
+            <span class="years">1975</span>
+            <h3>Crecimiento urbano</h3>
+            <p>Las primeras zonas habitacionales llegan a la región, anunciando la transformación metropolitana que
+              vendrá.</p>
+          </article>
+          <article class="timeline-card" data-reveal>
+            <span class="years">1990</span>
+            <h3>El umbral del presente</h3>
+            <p>El valle cierra un siglo de transformaciones y abre la puerta a la memoria que el Archivo FOCINE busca
+              rescatar.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="acervo" id="archivo">
+      <div class="wrap">
+        <div class="section-head" data-reveal>
+          <span class="eyebrow">El archivo · Rescate</span>
+          <h2>Lo que se rescata, y por qué importa</h2>
+          <p>Esta sección no muestra fotografías, videos ni audios: describe el valor de lo que la Fundación FADIS
+            trabaja para conservar. Las salas interactivas son el lugar para adentrarse en ese acervo.</p>
+        </div>
+
+        <div class="acervo-grid">
+          <article class="acervo-card" data-reveal>
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <circle cx="9" cy="11" r="2" />
+                <path d="M21 16l-5-4-4 3-3-2-6 5" />
+              </svg>
+            </span>
+            <h3>Fotografías de época</h3>
+            <p>Cada retrato familiar, cada plaza congelada en blanco y negro, es un testimonio de cómo se vivió, se
+              vistió y se trabajó en el valle. Rescatarlas es evitar que se disuelvan en cajones y desvanes.</p>
+          </article>
+
+          <article class="acervo-card" data-reveal>
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <rect x="3" y="5" width="14" height="14" rx="2" />
+                <path d="M17 10l4-2.5v9L17 14" />
+              </svg>
+            </span>
+            <h3>Memoria en movimiento</h3>
+            <p>Los videos de archivo capturan fiestas, cosechas y procesiones en su propio tiempo. Preservarlos conserva
+              no solo la imagen, sino el ritmo y el gesto de cada comunidad.</p>
+          </article>
+
+          <article class="acervo-card" data-reveal>
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M4 11v2a8 8 0 0 0 16 0v-2" />
+                <path d="M12 17v4M8 21h8" />
+                <rect x="9" y="3" width="6" height="11" rx="3" />
+              </svg>
+            </span>
+            <h3>Testimonios orales</h3>
+            <p>La voz de quien recuerda vale tanto como cualquier documento. Los registros de audio guardan acentos,
+              nombres y anécdotas que ningún archivo escrito conserva igual.</p>
+          </article>
+        </div>
+
+        <p class="acervo-note" data-reveal>Por diseño, esta plataforma de presentación no reproduce archivos multimedia
+          reales: su función es explicar y contextualizar el valor histórico de lo que se rescata. El material
+          fotográfico, audiovisual y sonoro se resguarda y consulta dentro de las salas interactivas del museo.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="titulo">Archivo FOCINE</span>
+          <p>Un proyecto de memoria histórica comunitaria de la Fundación FADIS para el Valle de Teotihuacán, Tecámac,
+            Acolman, Otumba, Axapusco y Temascalapa.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="Facebook de la Fundación FADIS"><svg viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1.6">
+                <path d="M14 9h3V6h-3a4 4 0 0 0-4 4v2H7v3h3v6h3v-6h3l1-3h-4v-2a1 1 0 0 1 1-1Z" />
+              </svg></a>
+            <a href="#" aria-label="Instagram de la Fundación FADIS"><svg viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1.6">
+                <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+                <circle cx="12" cy="12" r="3.6" />
+                <circle cx="17" cy="7" r="0.9" fill="currentColor" stroke="none" />
+              </svg></a>
+            <a href="#" aria-label="Correo de contacto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="1.6">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m4 7 8 6 8-6" />
+              </svg></a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Explorar</h4>
+          <ul>
+            <li><a href="#inicio">Inicio</a></li>
+            <li><a href="#historia">Historia 1905–1990</a></li>
+            <li><a href="#pulso">Territorio e identidad</a></li>
+            <li><a href="#archivo">El archivo</a></li>
+            <li><a href="salas.html">Salas interactivas</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Institucional</h4>
+          <ul>
+            <li><a href="#">Fundación FADIS</a></li>
+            <li><a href="#">Sobre el Archivo FOCINE</a></li>
+            <li><a href="#">Avisos legales</a></li>
+            <li><a href="#">Política de privacidad</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© 2026 Fundación FADIS · Archivo FOCINE. Memoria comunitaria del Valle de Teotihuacán.</span>
+        <span>Sitio 100% accesible — panel de accesibilidad disponible en todo momento.</span>
+      </div>
+    </div>
+  </footer>
+
+  <button class="a11y-launcher" id="a11yLauncher" aria-haspopup="true" aria-expanded="false" aria-controls="a11yPanel"
+    aria-label="Abrir herramientas de accesibilidad">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="12" cy="5" r="2.1" fill="#D4A017" />
+      <path
+        d="M12 8.2c-3.2 0-5.8.9-5.8 2v1.1c0 .5.4.9.9.9h2.2l.6 8.3c.05.6.55 1 1.1 1s1.05-.4 1.1-1l.4-5.6h.6l.4 5.6c.05.6.55 1 1.1 1s1.05-.4 1.1-1l.6-8.3h2.2c.5 0 .9-.4.9-.9V10.2c0-1.1-2.6-2-5.8-2Z"
+        fill="#BDBDBD" />
+    </svg>
+  </button>
+
+  <div class="a11y-panel" id="a11yPanel" role="dialog" aria-modal="true" aria-label="Menú de accesibilidad">
+
+    <div class="a11y-header">
+      <h2>Menú de accesibilidad</h2>
+      <button class="a11y-close" id="a11yClose" aria-label="Cerrar menú de accesibilidad">&times;</button>
+    </div>
+
+    <div class="a11y-body">
+
+      <div class="a11y-status" id="a11yStatus">
+        <span class="a11y-status-dot" aria-hidden="true"></span>
+        <span id="a11yStatusText">Ningún perfil activado</span>
+      </div>
+
+      <div class="a11y-section-label">Perfiles rápidos</div>
+      <div class="a11y-profiles" role="group" aria-label="Perfiles rápidos de accesibilidad">
+        <button type="button" class="profile-chip" id="profileMotora" data-profile="motora">
+          <span class="profile-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="4.5" r="2" fill="currentColor" />
+              <path
+                d="M12 8c-2.6 0-5 .7-5 1.7v1c0 .4.3.7.7.7h1.9l.5 7.3c0 .5.5.9 1 .9s.9-.4.9-.9l.3-5h.4l.3 5c0 .5.5.9 1 .9s.9-.4.9-.9l.5-7.3H16c.4 0 .7-.3.7-.7v-1C16.7 8.7 14.6 8 12 8Z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="profile-label">Discapacidad motora</span>
+          <span class="profile-check" aria-hidden="true">&check;</span>
+        </button>
+
+        <button type="button" class="profile-chip" id="profileCeguera" data-profile="ceguera">
+          <span class="profile-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M3 12c1.8-3.6 5.2-6 9-6s7.2 2.4 9 6c-1.8 3.6-5.2 6-9 6s-7.2-2.4-9-6Z" stroke="currentColor"
+                stroke-width="1.6" />
+              <circle cx="12" cy="12" r="2.4" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="profile-label">Ceguera</span>
+          <span class="profile-check" aria-hidden="true">&check;</span>
+        </button>
+
+        <button type="button" class="profile-chip" id="profileDaltonismo" data-profile="daltonismo">
+          <span class="profile-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 3c3 4 6 7.2 6 10.5A6 6 0 0 1 6 13.5C6 10.2 9 7 12 3Z" stroke="currentColor"
+                stroke-width="1.6" />
+            </svg>
+          </span>
+          <span class="profile-label">Daltonismo</span>
+          <span class="profile-check" aria-hidden="true">&check;</span>
+        </button>
+
+        <button type="button" class="profile-chip" id="profileDislexia" data-profile="dislexia">
+          <span class="profile-icon" aria-hidden="true">Df</span>
+          <span class="profile-label">Dislexia</span>
+          <span class="profile-check" aria-hidden="true">&check;</span>
+        </button>
+      </div>
+
+      <hr class="a11y-divider">
+
+      <div class="a11y-section-label">Ajustes individuales</div>
+
+      <div class="a11y-grid">
+
+        <button type="button" class="a11y-card" id="cardAudio" data-toggle="audio" aria-pressed="false">
+          <span class="card-badge" aria-hidden="true">i</span>
+          <span class="card-check" aria-hidden="true">&check;</span>
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 10v4h3l4 4V6l-4 4H4Z" fill="currentColor" />
+              <path d="M15.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              <path d="M18 6.5a8.5 8.5 0 0 1 0 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                opacity=".6" />
+            </svg>
+          </span>
+          <span class="card-label">Lector de pantalla</span>
+        </button>
+
+        <button type="button" class="a11y-card" id="cardContrasteAlto" data-contrast-option="alto" aria-pressed="false">
+          <span class="card-check" aria-hidden="true">&check;</span>
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+              <path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="card-label">Contraste +</span>
+        </button>
+
+        <button type="button" class="a11y-card" id="cardContrasteOscuro" data-contrast-option="oscuro"
+          aria-pressed="false">
+          <span class="card-check" aria-hidden="true">&check;</span>
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="card-label">Modo oscuro</span>
+        </button>
+
+        <button type="button" class="a11y-card" id="cardSaturacion" data-toggle="saturacion" aria-pressed="false">
+          <span class="card-check" aria-hidden="true">&check;</span>
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 3c2.8 3.8 5.5 6.9 5.5 10a5.5 5.5 0 1 1-11 0C6.5 9.9 9.2 6.8 12 3Z" stroke="currentColor"
+                stroke-width="1.6" />
+            </svg>
+          </span>
+          <span class="card-label">Saturación</span>
+        </button>
+
+        <button type="button" class="a11y-card" id="cardTipografia" data-expand="tipografia" aria-expanded="false">
+          <span class="card-check" aria-hidden="true">&check;</span>
+          <span class="card-icon" aria-hidden="true">T T</span>
+          <span class="card-label">Tipografía</span>
+        </button>
+
+        <button type="button" class="a11y-card" id="cardZoom" data-toggle="zoom" aria-pressed="false">
+          <span class="card-check" aria-hidden="true">&check;</span>
+          <span class="card-icon" aria-hidden="true">A+</span>
+          <span class="card-label">Texto más grande</span>
+        </button>
+
+        <button type="button" class="a11y-card" id="cardEspaciado" data-toggle="espaciado" aria-pressed="false">
+          <span class="card-check" aria-hidden="true">&check;</span>
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 12h16M4 12l3-3M4 12l3 3M20 12l-3-3M20 12l-3 3" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="card-label">Espaciado de texto</span>
+        </button>
+
+        <button type="button" class="a11y-card" id="cardCursor" data-expand="cursor" aria-expanded="false">
+          <span class="card-check" aria-hidden="true">&check;</span>
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 3l14 8.5-6.2.9L16 19l-2.6 1.1-3.2-6.6L5 17V3Z" />
+            </svg>
+          </span>
+          <span class="card-label">Cursor</span>
+        </button>
+
+        <button type="button" class="a11y-card" id="cardResaltado" data-toggle="resaltado" aria-pressed="false">
+          <span class="card-check" aria-hidden="true">&check;</span>
+          <span class="card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="14" width="16" height="6" rx="1" fill="currentColor" opacity=".35" />
+              <path d="M8 14l6-9 3 2-6 9-4 1 1-3Z" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="card-label">Resaltado de texto</span>
+        </button>
+
+      </div>
+
+      <div class="a11y-subpanel" id="subpanelDaltonismo" data-subpanel="daltonismo" hidden>
+        <span class="a11y-subpanel-label">Tipo de daltonismo</span>
+        <div class="a11y-chip-row" role="group" aria-label="Tipo de ajuste de color">
+          <button type="button" class="a11y-chip" data-color-blind="none">Estándar</button>
+          <button type="button" class="a11y-chip" data-color-blind="protanopia">Protanopia</button>
+          <button type="button" class="a11y-chip" data-color-blind="deuteranopia">Deuteranopia</button>
+          <button type="button" class="a11y-chip" data-color-blind="tritanopia">Tritanopia</button>
+          <button type="button" class="a11y-chip" data-color-blind="achromatopsia">Monocromía</button>
+        </div>
+      </div>
+
+      <div class="a11y-subpanel" id="subpanelTipografia" data-subpanel="tipografia" hidden>
+        <span class="a11y-subpanel-label">Familia tipográfica</span>
+        <div class="a11y-chip-row" role="group" aria-label="Familia tipográfica">
+          <button type="button" class="a11y-chip" data-font="default">Estándar</button>
+          <button type="button" class="a11y-chip" data-font="opendyslexic">OpenDyslexic</button>
+          <button type="button" class="a11y-chip" data-font="sans">Sans-serif</button>
+          <button type="button" class="a11y-chip" data-font="serif">Serif clásica</button>
+        </div>
+      </div>
+
+      <div class="a11y-subpanel" id="subpanelCursor" data-subpanel="cursor" hidden>
+        <span class="a11y-subpanel-label">Tamaño de la flecha</span>
+        <div class="a11y-chip-row" role="group" aria-label="Tamaño del cursor">
+          <button type="button" class="a11y-chip" data-cursor="normal">Normal</button>
+          <button type="button" class="a11y-chip" data-cursor="grande">Grande</button>
+          <button type="button" class="a11y-chip" data-cursor="extragrande">Extragrande</button>
+        </div>
+      </div>
+
+      <button type="button" class="a11y-reset" id="a11yReset">Restablecer todos los ajustes</button>
+
+    </div>
+  </div>
+  <script src="assets/js/app.js"></script>
+</body>
+
+</html>
